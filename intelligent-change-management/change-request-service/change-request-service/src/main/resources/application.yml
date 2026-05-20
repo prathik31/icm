@@ -1,0 +1,60 @@
+spring:
+  application:
+    name:
+      change-request-service
+  datasource:
+    url:
+      jdbc:mysql://localhost:3306/icm_db
+    username:
+      root
+    password:
+      Prtk_14rnk
+  jpa:
+    hibernate:
+      ddl-auto:
+        none
+    show-sql:
+      true
+    properties:
+      hibernate:
+        dialect:
+          org.hibernate.dialect.MySQLDialect
+  sql:
+    init:
+      mode:
+        always
+      schema-locations:
+        classpath:schema.sql
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: change-request-service
+      auto-offset-reset: latest
+
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.telecom.change_request_service.dto.event.RiskAssessmentEvent
+        spring.json.use.type.headers: false
+
+server:
+  port:
+    9004
+
+jwt:
+  secret:
+    mySecretKey1234567890123456789012345678901234567890
+  expiration:
+    86400000
+
+app:
+  kafka:
+    change-request-topic: change-requests
+    cr-risk-confirmed-topic: cr.risk_confirmed

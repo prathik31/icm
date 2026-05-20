@@ -1,0 +1,30 @@
+{
+  "cr_id": "string",
+  "title": "string",
+  "description": "string",
+
+  "domain": "string",
+  "change_type": "string",
+  "region": "string",
+
+  "scheduled_start": "datetime",
+  "scheduled_end": "datetime",
+
+  "rollback_available": true,
+
+  "business_justification": "string",
+
+  "asset_count": 0,
+
+  "is_peak_hours": false,
+  "is_weekend": false,
+  "duration_minutes": 0,
+
+  "has_core_asset": false,
+  "any_internet_facing": false,
+  "all_assets_redundant": false,
+
+  "max_asset_criticality": "LOW",
+
+  "asset_ids": []
+}

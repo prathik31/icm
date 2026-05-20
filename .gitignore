@@ -1,0 +1,68 @@
+# Root-level ignore for the ICM monorepo
+
+# Java / Maven
+**/target/
+**/out/
+*.class
+*.jar
+*.war
+*.ear
+*.jar.original
+*.log
+
+# Maven wrapper local cache
+**/.mvn/wrapper/maven-wrapper.jar.original
+
+# Node / frontend
+**/node_modules/
+**/dist/
+**/.vite/
+**/.parcel-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/.Python
+**/env/
+**/venv/
+**/.venv/
+**/pip-wheel-metadata/
+**/pip-log.txt
+**/.pytest_cache/
+**/.mypy_cache/
+**/.coverage
+coverage.xml
+*.zip
+
+# Docker
+docker-compose.override.yml
+**/docker-compose.override.yml
+**/docker-compose.*.yml
+
+# IDE / editor
+.vscode/
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and secrets
+*.env
+*.env.*
+*.local
+
+# Nested backend repository metadata should not be added to the root repo
+intelligent-change-management/.git/

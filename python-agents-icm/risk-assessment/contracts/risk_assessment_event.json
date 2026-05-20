@@ -1,0 +1,45 @@
+{
+  "assessment_id": "string",
+
+  "cr_id": "string",
+
+  "risk_score": 0.0,
+
+  "risk_level": "LOW",
+
+  "blast_radius": "LOCAL",
+
+  "confidence": 0.0,
+
+  "executive_summary": "string",
+
+  "technical_analysis": "string",
+
+  "cab_guidance": "string",
+
+  "recommendations": [],
+
+  "risk_indicators": [],
+
+  "grounding_evidence": {
+
+    "similar_changes_analyzed": 0,
+
+    "similar_changes_with_outages": 0,
+
+    "similar_changes_with_rollbacks": 0,
+
+    "similar_changes_failed": 0
+  },
+
+  "model_metadata": {
+
+    "prediction_engine": "string",
+
+    "reasoning_engine": "string",
+
+    "grounding_enabled": true
+  },
+
+  "generated_at": "datetime"
+}
