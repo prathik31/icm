@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import com.telecom.approval_service.dto.ApprovalDetailsDTO;
 import com.telecom.approval_service.dto.ApprovalStepDTO;
@@ -31,6 +33,11 @@ public class ApprovalWorkflowService {
 	private final ApprovalFlowRepository approvalFlowRepository;
 	private final ApprovalDecisionRepository approvalDecisionRepository;
 	private final ApprovalDecisionProducer approvalDecisionProducer;
+	private final RunbookGenerationService runbookGenerationService;
+	private final RestTemplate restTemplate;
+
+	@Value("${app.change-request-service.url:http://localhost:9004}")
+	private String changeRequestServiceUrl;
 
 	@Transactional
 	public void handleRiskConfirmedEvent(CrRiskConfirmedEvent event) {
@@ -56,6 +63,22 @@ public class ApprovalWorkflowService {
 		return mapToDetails(flow);
 	}
 
+	public List<ApprovalDetailsDTO> getApprovalHistory() {
+		return approvalFlowRepository.findByStatus("APPROVED").stream().map(flow -> {
+			ApprovalFlow hydratedFlow = flow;
+			ApprovalDecision latestDecision = approvalDecisionRepository.findTopByFlowIdOrderByDecisionAtDesc(flow.getFlowId()).orElse(null);
+			ApprovalDetailsDTO details = mapToDetails(hydratedFlow);
+			if (latestDecision != null && details.getSteps() != null && !details.getSteps().isEmpty()) {
+				details.getSteps().stream().forEach(step -> {
+					if (step.getApproverEmail() == null) {
+						step.setApproverEmail(latestDecision.getApproverEmail());
+					}
+				});
+			}
+			return details;
+		}).toList();
+	}
+
 	@Transactional
 	public ApprovalDetailsDTO approve(String flowId, String approverUserId, String approverRole, String comment) {
 		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
@@ -70,9 +93,22 @@ public class ApprovalWorkflowService {
 		approvalFlowRepository.save(flow);
 
 		ApprovalDecision decision = ApprovalDecision.builder().flowId(flowId).approverUserId(approverUserId)
-				.approverRole(approverRole).outcome("APPROVED").comment(comment).decisionAt(LocalDateTime.now())
+				.approverRole(approverRole).approverEmail("swetasingh@gmail.com").outcome("APPROVED").comment(comment).decisionAt(LocalDateTime.now())
 				.build();
 		approvalDecisionRepository.save(decision);
+
+		try {
+			updateChangeRequestStatus(flow.getCrId());
+		} catch (Exception ex) {
+			log.error("Failed to update change request status for CR: {}", flow.getCrId(), ex);
+		}
+
+		try {
+			runbookGenerationService.generateRunbook(flow.getCrId());
+			log.info("Runbook generated successfully for CR: {}", flow.getCrId());
+		} catch (Exception ex) {
+			log.error("Runbook generation failed for CR: {}", flow.getCrId(), ex);
+		}
 
 		publishDecision(flow, decision);
 		return mapToDetails(flow);
@@ -92,7 +128,7 @@ public class ApprovalWorkflowService {
 		approvalFlowRepository.save(flow);
 
 		ApprovalDecision decision = ApprovalDecision.builder().flowId(flowId).approverUserId(approverUserId)
-				.approverRole(approverRole).outcome("REJECTED").comment(comment).decisionAt(LocalDateTime.now())
+				.approverRole(approverRole).approverEmail("swetasingh@gmail.com").outcome("REJECTED").comment(comment).decisionAt(LocalDateTime.now())
 				.build();
 		approvalDecisionRepository.save(decision);
 
@@ -108,6 +144,11 @@ public class ApprovalWorkflowService {
 		approvalDecisionProducer.publishApprovalDecision(event);
 	}
 
+    private void updateChangeRequestStatus(String crId) {
+        String url = changeRequestServiceUrl + "/v1/change-requests/" + crId + "/approve";
+        restTemplate.postForLocation(url, null);
+    }
+
 	private ApprovalDetailsDTO mapToDetails(ApprovalFlow flow) {
 		ApprovalDetailsDTO details = new ApprovalDetailsDTO();
 		details.setFlowId(flow.getFlowId());
@@ -120,6 +161,7 @@ public class ApprovalWorkflowService {
 					ApprovalStepDTO step = new ApprovalStepDTO();
 					step.setApproverUserId(decision.getApproverUserId());
 					step.setApproverRole(decision.getApproverRole());
+					step.setApproverEmail(decision.getApproverEmail());
 					step.setOutcome(decision.getOutcome());
 					step.setComment(decision.getComment());
 					step.setDecisionAt(decision.getDecisionAt());

@@ -35,6 +35,12 @@ public class ApprovalController {
 		return ResponseEntity.ok(approvalWorkflowService.getPendingApprovals());
 	}
 
+	@GetMapping("/history")
+	public ResponseEntity<List<ApprovalDetailsDTO>> history(HttpServletRequest request) {
+		validateAnyApproverOrAdmin(request);
+		return ResponseEntity.ok(approvalWorkflowService.getApprovalHistory());
+	}
+
 	@GetMapping("/{crId}")
 	public ResponseEntity<ApprovalDetailsDTO> getApprovalDetails(@PathVariable String crId,
 			HttpServletRequest request) {

@@ -10,6 +10,9 @@ import Dashboard from './pages/Dashboard'
 import CRCreate from './pages/CRCreate'
 import CRList from './pages/CRList'
 import CRDetails from './pages/CRDetails'
+import RiskAssessments from './pages/RiskAssessments'
+import Runbooks from './pages/Runbooks'
+import RunbookDetails from './pages/RunbookDetails'
 import ApprovalsPending from './pages/ApprovalsPending'
 import ApprovalDetails from './pages/ApprovalDetails'
 import ApprovalHistory from './pages/ApprovalHistory'
@@ -46,6 +49,9 @@ function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/cr/list" element={<CRList />} />
+                <Route path="/risk-assessments" element={<RiskAssessments />} />
+                <Route path="/runbooks" element={<Runbooks />} />
+                <Route path="/runbooks/:crId" element={<RunbookDetails />} />
                 <Route path="/cr/details/:id" element={<CRDetails />} />
               </Route>
 

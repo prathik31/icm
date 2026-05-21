@@ -6,6 +6,7 @@ public enum Status {
     ANALYZED,
     RISK_CONFIRMED,
     APPROVED,
+    REJECTED,
     RUNNING,
     COMPLETED,
     FAILED

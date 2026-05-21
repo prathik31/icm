@@ -61,6 +61,12 @@ public class ChangeRequestController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<SubmitChangeRequestResponseDTO> approveChangeRequest(@PathVariable String id) {
+        SubmitChangeRequestResponseDTO response = changeRequestService.approveChangeRequest(id);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     public ResponseEntity<List<ChangeRequestResponseDTO>> getAllChangeRequests() {
         List<ChangeRequestResponseDTO> response = changeRequestService.getAllChangeRequests();

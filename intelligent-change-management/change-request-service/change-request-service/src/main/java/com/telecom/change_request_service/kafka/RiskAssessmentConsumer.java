@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -33,10 +34,18 @@ public class RiskAssessmentConsumer {
 
     @KafkaListener(
         topics = "ai.risk.completed",
-        groupId = "change-request-service"
+        groupId = "change-request-service-v2",
+        containerFactory = "riskAssessmentKafkaListenerContainerFactory"
     )
-    public void consume(RiskAssessmentEvent event)
+    public void consume(String eventJson)
             throws JsonProcessingException {
+
+        log.info("Received AI Risk Assessment Event payload: {}", eventJson);
+
+        JsonNode rootNode = objectMapper.readTree(eventJson);
+        JsonNode payloadNode = rootNode.hasNonNull("data") ? rootNode.get("data") : rootNode;
+
+        RiskAssessmentEvent event = objectMapper.treeToValue(payloadNode, RiskAssessmentEvent.class);
 
         log.info("Received AI Risk Assessment for CR: {}", event.getCrId());
 

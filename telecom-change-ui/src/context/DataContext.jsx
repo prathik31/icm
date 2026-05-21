@@ -30,13 +30,6 @@ export const DataProvider = ({ children }) => {
   }
 
   const loadApprovals = async () => {
-    if (role !== 'APPROVER' && role !== 'ADMIN') {
-      console.log('Skipping approval fetch for non-approver')
-      setApprovals([])
-      setErrorApprovals(null)
-      return []
-    }
-
     setLoadingApprovals(true)
     setErrorApprovals(null)
     try {
@@ -52,7 +45,11 @@ export const DataProvider = ({ children }) => {
   }
 
   const refreshAll = async () => {
-    const results = await Promise.allSettled([loadRequests(), loadApprovals()])
+    const tasksToRun = [loadRequests()]
+    if (role === 'APPROVER' || role === 'ADMIN') {
+      tasksToRun.push(loadApprovals())
+    }
+    const results = await Promise.allSettled(tasksToRun)
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
         const label = index === 0 ? 'loadRequests' : 'loadApprovals'

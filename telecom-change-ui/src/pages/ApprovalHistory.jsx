@@ -52,18 +52,18 @@ const ApprovalHistory = () => {
             { key: 'crId', title: 'Change request' },
             { key: 'status', title: 'Status' },
             { key: 'decision', title: 'Decision' },
-            { key: 'approvedBy', title: 'Approver' },
-            { key: 'updatedAt', title: 'Updated' },
+            { key: 'approver', title: 'Approver' },
+            { key: 'updated', title: 'Updated' },
           ]}
           rows={history}
           emptyMessage="No approvals found."
           renderRow={(item) => (
-            <tr key={item.id || item.flowId || item.changeRequestId} className="hover:bg-slate-50">
-              <td className="px-6 py-4 text-slate-900">{item.changeRequestId || item.crId || '—'}</td>
+            <tr key={item.id || item.flowId || item.changeRequestId || item.crId} className="hover:bg-slate-50">
+              <td className="px-6 py-4 text-slate-900">{item.crId || item.changeRequestId || '—'}</td>
               <td className="px-6 py-4 text-slate-600">{item.status || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.decision || item.approvalAction || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.approver || item.approvedBy || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.updatedAt || item.completedAt || '—'}</td>
+              <td className="px-6 py-4 text-slate-600">{item.steps?.[0]?.outcome || '—'}</td>
+              <td className="px-6 py-4 text-slate-600">{item.steps?.[0]?.approverEmail || '—'}</td>
+              <td className="px-6 py-4 text-slate-600">{item.steps?.[0]?.decisionAt ? new Date(item.steps[0].decisionAt).toLocaleString() : '—'}</td>
             </tr>
           )}
         />

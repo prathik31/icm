@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class ApprovalStepDTO {
 	private String approverUserId;
 	private String approverRole;
+	private String approverEmail;
 	private String outcome;
 	private String comment;
 	private LocalDateTime decisionAt;

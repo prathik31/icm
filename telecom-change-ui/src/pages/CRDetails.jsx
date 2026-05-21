@@ -14,7 +14,7 @@ import Timeline from '../components/Timeline'
 const CRDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { role } = useAuth()
+  const { role, email, name } = useAuth()
   const [request, setRequest] = useState(null)
   const [assessment, setAssessment] = useState(null)
   const [loadingAssessment, setLoadingAssessment] = useState(false)
@@ -120,7 +120,7 @@ const CRDetails = () => {
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={request.status || 'UNKNOWN'} />
-            <RiskBadge level={riskRating || 'UNKNOWN'} />
+            {riskRating && <RiskBadge level={riskRating} />}
           </div>
         }
       >
@@ -155,17 +155,22 @@ const CRDetails = () => {
               </div>
               <div>
                 <dt className="font-semibold text-slate-900">Requested by</dt>
-                <dd>{request.requestedByUserId || request.createdBy || '—'}</dd>
+                <dd>
+                  {name || email || request.requestedByEmail || request.createdBy || request.requestedByUserId || '—'}
+                </dd>
               </div>
             </dl>
           </Card>
 
-          <RiskAssessmentCard
-            assessment={assessmentData}
-            requestStatus={request?.status}
-            loading={loadingAssessment}
-            error={assessmentError}
-          />
+          {['ANALYZED', 'RISK_CONFIRMED', 'APPROVED', 'RUNNING', 'COMPLETED', 'FAILED']
+            .includes(request?.status) && (
+              <RiskAssessmentCard
+                assessment={assessmentData}
+                requestStatus={request?.status}
+                loading={loadingAssessment}
+                error={assessmentError}
+              />
+            )}
 
           <Card title="Change assets">
             <div className="space-y-4">

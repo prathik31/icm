@@ -63,8 +63,11 @@ const CRCreate = () => {
         ...form,
         requestedByUserId: userId,
       }
-      await createChangeRequest(payload)
+      const response = await createChangeRequest(payload)
+      void response
+      alert('Change Request Draft Created Successfully!')
       navigate('/cr/list')
+      window.location.reload()
     } catch (err) {
       // Axios returns either a string or an object from axiosClient interceptor
       console.error('Create CR error', err)

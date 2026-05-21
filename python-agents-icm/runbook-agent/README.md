@@ -191,7 +191,7 @@ The current code reads settings from environment variables. A practical starting
 
 ```env
 APP_NAME=Runbook Agent
-APP_PORT=8000
+APP_PORT=8101
 GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=llama-3.3-70b-versatile
 KAFKA_BROKERS=localhost:9092
@@ -211,7 +211,7 @@ Notes:
 Start the FastAPI app with Uvicorn:
 
 ```powershell
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8101
 ```
 
 Available endpoints:

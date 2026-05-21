@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.telecom.change_request_service.dto.AssetResponseDTO;
 import com.telecom.change_request_service.dto.AssetDTO;
 import com.telecom.change_request_service.dto.ChangeRequestResponseDTO;
 import com.telecom.change_request_service.dto.CrAssessmentResponseDTO;
@@ -190,6 +192,25 @@ public class ChangeRequestService {
         return response;
     }
 
+    public SubmitChangeRequestResponseDTO approveChangeRequest(String id) {
+        ChangeRequest changeRequest = changeRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ChangeRequest not found with id: " + id));
+
+        if (changeRequest.getStatus() != Status.RISK_CONFIRMED) {
+            throw new InvalidStateException("Only RISK_CONFIRMED change requests can be approved");
+        }
+
+        changeRequest.setStatus(Status.APPROVED);
+        changeRequest.setUpdatedAt(LocalDateTime.now());
+
+        ChangeRequest saved = changeRequestRepository.save(changeRequest);
+
+        SubmitChangeRequestResponseDTO response = new SubmitChangeRequestResponseDTO();
+        response.setCrId(saved.getCrId());
+        response.setStatus(saved.getStatus());
+        return response;
+    }
+
     public List<ChangeRequestResponseDTO> getAllChangeRequests() {
         List<ChangeRequest> changeRequests = changeRequestRepository.findAll();
         return changeRequests.stream()
@@ -205,7 +226,7 @@ public class ChangeRequestService {
 
     public CrAssessmentResponseDTO getAssessmentByCrId(String crId) {
         CrAssessment assessment = crAssessmentRepository
-                .findFirstByCrIdOrderByAssessedAtDesc(crId)
+            .findFirstByCrIdOrderByAssessedAtDesc(crId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assessment not found"));
 
         CrAssessmentResponseDTO dto = new CrAssessmentResponseDTO();
@@ -255,6 +276,20 @@ public class ChangeRequestService {
         dto.setRequestedByUserId(entity.getRequestedByUserId());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
+
+        List<CrAsset> assets = crAssetRepository.findByCrId(entity.getCrId());
+
+        List<AssetResponseDTO> assetDTOs = assets.stream()
+                .map(asset -> {
+                    AssetResponseDTO assetDTO = new AssetResponseDTO();
+                    assetDTO.setAssetType(asset.getAssetType());
+                    assetDTO.setAssetId(asset.getAssetId());
+                    assetDTO.setHostname(asset.getHostname());
+                    return assetDTO;
+                })
+                .collect(Collectors.toList());
+
+        dto.setAssets(assetDTOs);
         return dto;
     }
 }

@@ -8,7 +8,7 @@ spring:
     username:
       root
     password:
-      Prtk_14rnk
+      Contract@1968
   jpa:
     hibernate:
       ddl-auto:
@@ -33,7 +33,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
     consumer:
-      group-id: change-request-service
+      group-id: change-request-service-v2
       auto-offset-reset: latest
 
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -41,8 +41,9 @@ spring:
 
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.value.default.type: com.telecom.change_request_service.dto.event.RiskAssessmentEvent
         spring.json.use.type.headers: false
+        spring.json.value.default.type: com.telecom.change_request_service.dto.event.RiskAssessmentEvent
+        spring.json.type.mapping: approvalDecisionEvent:com.telecom.change_request_service.kafka.event.ApprovalDecisionEvent
 
 server:
   port:

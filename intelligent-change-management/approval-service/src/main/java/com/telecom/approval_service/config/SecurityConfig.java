@@ -45,23 +45,7 @@ public class SecurityConfig {
 
                 // AUTHORIZATION RULES
                 .authorizeHttpRequests(auth -> auth
-
-                        // PRE-FLIGHT CORS REQUESTS
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // PUBLIC ENDPOINTS
-                        .requestMatchers(
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-
-                        // APPROVER APIs
-                        .requestMatchers(
-                                "/v1/approvals/**"
-                        ).hasAuthority("APPROVER")
-
-                        // EVERYTHING ELSE
+                        .requestMatchers("/v1/runbooks/**").permitAll()
                         .anyRequest().authenticated()
                 )
 

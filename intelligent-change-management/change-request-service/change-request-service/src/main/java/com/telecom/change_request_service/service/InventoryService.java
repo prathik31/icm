@@ -66,53 +66,11 @@ public class InventoryService {
         AssetResponseDTO dto =
             new AssetResponseDTO();
 
-        dto.setAssetId(asset.getAssetId());
-
         dto.setAssetType(asset.getAssetType());
 
-        dto.setDomain(asset.getDomain());
-
-        dto.setTier(asset.getTier());
+        dto.setAssetId(asset.getAssetId());
 
         dto.setHostname(asset.getHostname());
-
-        dto.setRegion(asset.getRegion());
-
-        dto.setDatacenter(asset.getDatacenter());
-
-        dto.setVendor(asset.getVendor());
-
-        dto.setModel(asset.getModel());
-
-        dto.setCriticalityLevel(
-            asset.getCriticalityLevel()
-        );
-
-        dto.setIsCoreInfrastructure(
-            asset.getIsCoreInfrastructure()
-        );
-
-        dto.setIsInternetFacing(
-            asset.getIsInternetFacing()
-        );
-
-        dto.setRedundancyAvailable(
-            asset.getRedundancyAvailable()
-        );
-
-        dto.setConnectedAssetCount(
-            asset.getConnectedAssetCount()
-        );
-
-        dto.setRegionHubWeight(
-            asset.getRegionHubWeight()
-        );
-
-        dto.setSupportsRollback(
-            asset.getSupportsRollback()
-        );
-
-        dto.setIsActive(asset.getIsActive());
 
         return dto;
     }

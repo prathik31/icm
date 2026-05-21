@@ -34,6 +34,9 @@ public class ApprovalDecision {
 	@Column(length = 50)
 	private String approverRole;
 
+	@Column(length = 255)
+	private String approverEmail;
+
 	@Column(nullable = false, length = 50)
 	private String outcome;
 

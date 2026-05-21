@@ -1,6 +1,7 @@
 package com.telecom.change_request_service.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.telecom.change_request_service.enums.Status;
 
@@ -23,4 +24,5 @@ public class ChangeRequestResponseDTO {
     private String requestedByUserId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<AssetResponseDTO> assets;
 }

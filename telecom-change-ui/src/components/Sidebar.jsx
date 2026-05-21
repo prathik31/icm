@@ -1,17 +1,27 @@
 import { NavLink } from 'react-router-dom'
-import { Home, FilePlus, ClipboardList, Clock, ListChecks } from 'lucide-react'
+import { Home, FilePlus, ClipboardList, Clock, ListChecks, BookOpen } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: Home },
   { label: 'Create CR', path: '/cr/create', icon: FilePlus, roles: ['ENGINEER', 'ADMIN'] },
   { label: 'My CRs', path: '/cr/list', icon: ClipboardList },
+  { label: 'Risk Assessments', path: '/risk-assessments', icon: Clock },
+  { label: 'AI Runbooks', path: '/runbooks', icon: BookOpen, roles: ['ENGINEER'] },
   { label: 'Pending Approvals', path: '/approvals/pending', icon: Clock, roles: ['APPROVER', 'ADMIN'] },
   { label: 'Approval History', path: '/approvals/history', icon: ListChecks, roles: ['APPROVER', 'ADMIN'] },
 ]
 
 const Sidebar = () => {
-  const { role } = useAuth()
+  const { user, role } = useAuth()
+
+  console.log('USER ROLE:', user)
+
+  const filteredNavigation = navigation.filter((item) => {
+    if (!item.roles) return true
+
+    return item.roles.includes(role)
+  })
 
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:gap-6 lg:border-r lg:border-slate-200 lg:bg-white lg:px-4 lg:py-6">
@@ -26,8 +36,7 @@ const Sidebar = () => {
       </div>
 
       <nav className="mt-6 flex flex-1 flex-col gap-2 px-2">
-        {navigation.map((item) => {
-          if (item.roles && !item.roles.includes(role)) return null
+        {filteredNavigation.map((item) => {
           const Icon = item.icon
           return (
             <NavLink

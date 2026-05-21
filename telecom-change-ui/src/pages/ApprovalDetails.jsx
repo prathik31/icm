@@ -87,7 +87,7 @@ const ApprovalDetails = () => {
         await rejectFlow(flowId, comment)
       }
       await refreshAll()
-      navigate('/approvals/pending')
+      navigate('/approvals/history')
     } catch (err) {
       setMessage(err?.message || 'Unable to complete approval action.')
     } finally {

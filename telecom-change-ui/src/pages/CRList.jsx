@@ -105,10 +105,11 @@ const CRList = () => {
             { key: 'id', title: 'CR ID' },
             { key: 'title', title: 'Title' },
             { key: 'status', title: 'Status' },
-            { key: 'risk', title: 'Risk' },
+            { key: 'risk', title: 'Risk Level' },
+            { key: 'riskScore', title: 'Risk Score' },
             { key: 'region', title: 'Region' },
             { key: 'createdAt', title: 'Created' },
-            { key: 'actions', title: '' },
+            { key: 'actions', title: 'Actions' },
           ]}
           rows={filteredRequests}
           renderRow={(request) => {

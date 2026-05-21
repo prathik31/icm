@@ -27,12 +27,37 @@ const normalizeAssessment = (assessment) => {
 
 const normalizeApproval = (approval) => {
   if (!approval) return null
+  const changeRequestId =
+    approval.changeRequestId || approval.crId || approval.requestId || approval.changeRequest?.id || null
+  const approver =
+    approval.approver ||
+    approval.approvedBy ||
+    approval.approverEmail ||
+    approval.approver_email ||
+    approval.approver_email_address ||
+    approval.approver?.email ||
+    null
+  const updated =
+    approval.updated ||
+    approval.updatedAt ||
+    approval.completedAt ||
+    approval.updated_at ||
+    approval.completed_at ||
+    approval.lastUpdated ||
+    approval.lastUpdatedAt ||
+    null
+
   return {
     ...approval,
     id: approval.flowId || approval.id || null,
-    changeRequestId:
-      approval.changeRequestId || approval.crId || approval.requestId || approval.changeRequest?.id || null,
+    crId: approval.crId || changeRequestId || null,
+    changeRequestId,
     status: (approval.status || approval.state || 'PENDING').toUpperCase(),
+    decision: approval.decision || approval.approvalAction || approval.action || null,
+    approver,
+    approvedBy: approver,
+    updated,
+    updatedAt: updated,
     assessment: normalizeAssessment(approval.assessment || approval.changeRequest?.assessment || approval.changeRequest?.riskAssessment),
     confidence: approval.confidence ?? approval.assessment?.confidence ?? null,
     blastRadius:

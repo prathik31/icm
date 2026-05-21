@@ -20,7 +20,7 @@ public class ApprovalEventConsumer {
 	@Value("${app.kafka.cr-risk-confirmed-topic:cr.risk_confirmed}")
 	private String riskConfirmedTopic;
 
-	@KafkaListener(topics = "#{'${app.kafka.cr-risk-confirmed-topic:cr.risk_confirmed}'}", groupId = "approval-group")
+	@KafkaListener(topics = "#{'${app.kafka.cr-risk-confirmed-topic:cr.risk_confirmed}'}", groupId = "approval-group-v2")
 	public void consume(CrRiskConfirmedEvent event) {
 		log.info("Received {} event for CR {}", riskConfirmedTopic, event.getCrId());
 		approvalWorkflowService.handleRiskConfirmedEvent(event);

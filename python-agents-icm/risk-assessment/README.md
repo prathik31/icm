@@ -84,7 +84,7 @@ MODEL_PATH=./models
 ```powershell
 # Create MySQL database
 mysql -u root -p
-CREATE DATABASE icm_risk_intelligence;
+CREATE DATABASE icm_db;
 EXIT;
 
 # Initialize schema
