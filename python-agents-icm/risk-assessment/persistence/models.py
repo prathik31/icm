@@ -55,6 +55,14 @@ class RiskAssessment(Base):
         Text
     )
 
+    recommendations = Column(
+        Text
+    )
+
+    risk_indicators = Column(
+        Text
+    )
+
     created_at = Column(
         TIMESTAMP,
         server_default=func.now()

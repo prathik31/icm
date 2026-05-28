@@ -1,115 +1,158 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { listRunbooks } from '../services/runbookService'
-import Loader from '../components/Loader'
-import EmptyState from '../components/EmptyState'
+import { useNavigate } from 'react-router-dom'
+import { fetchEligibleCRs, generateRunbook } from '../api/runbookApi'
+import { sortByLatest } from '../utils/sortByLatest'
 
 const Runbooks = () => {
-  const [runbooks, setRunbooks] = useState([])
+  const [crs, setCrs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [generatingCrId, setGeneratingCrId] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    const loadRunbooks = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const data = await listRunbooks()
-        setRunbooks(data || [])
-      } catch (err) {
-        setError(err?.message || 'Unable to load runbooks.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadRunbooks()
+    loadCRs()
   }, [])
 
-  if (loading) {
-    return <Loader />
+  const loadCRs = async () => {
+    try {
+      const data = await fetchEligibleCRs()
+      setCrs(sortByLatest(Array.isArray(data) ? data : [], ['generatedAt', 'createdAt', 'updatedAt']))
+    } catch (err) {
+      setError(err?.message || 'Unable to load eligible change requests.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const getRiskColor = (level) => {
-    switch ((level || '').toUpperCase()) {
-      case 'CRITICAL':
-        return 'bg-red-100 text-red-700'
-      case 'HIGH':
-        return 'bg-orange-100 text-orange-700'
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-700'
-      case 'LOW':
-        return 'bg-green-100 text-green-700'
-      default:
-        return 'bg-slate-100 text-slate-700'
+  const handleGenerate = async (crId) => {
+    try {
+      setGeneratingCrId(crId)
+      await generateRunbook(crId)
+      navigate(`/runbooks/${crId}`)
+    } catch (err) {
+      console.error(err)
+      alert('Runbook generation failed')
+    } finally {
+      setGeneratingCrId(null)
     }
+  }
+
+  const hasGeneratedRunbook = (cr) => Boolean(
+    cr?.runbookGenerated ||
+    cr?.hasRunbook ||
+    cr?.generatedRunbook ||
+    cr?.runbookId ||
+    cr?.runbook
+  )
+
+  if (loading) {
+    return <div className="p-6">Loading...</div>
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">AI Runbooks</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          AI-generated operational runbooks for approved change requests. Pre-checks, execution steps, validation, and rollback procedures.
-        </p>
-      </div>
+    <div className="p-6">
+
+      <h1 className="text-3xl font-bold mb-6">
+        Eligible Change Requests
+      </h1>
 
       {error && (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div>
-      )}
-
-      {runbooks.length === 0 ? (
-        <EmptyState
-          title="No runbooks available"
-          description="Runbooks are generated after change requests are approved. Check back after approvals are processed."
-        />
-      ) : (
-        <div className="grid gap-4">
-          {runbooks.map((runbook) => (
-            <Link
-              key={runbook.crId}
-              to={`/runbooks/${runbook.crId}`}
-              className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-slate-900 transition-colors group-hover:text-blue-600">
-                    {runbook.title}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">{runbook.crId}</p>
-                </div>
-                <div className="ml-4 flex items-center gap-2">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getRiskColor(runbook.riskLevel)}`}>
-                    {runbook.riskLevel}
-                  </span>
-                  <span className="text-slate-400">→</span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div>
-                  <p className="text-xs uppercase text-slate-500">Blast Radius</p>
-                  <p className="mt-1 font-semibold text-slate-900">{runbook.blastRadius || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-500">Duration</p>
-                  <p className="mt-1 font-semibold text-slate-900">{runbook.duration ? `${runbook.duration} mins` : '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-500">Generated</p>
-                  <p className="mt-1 font-semibold text-slate-900">
-                    {runbook.generatedAt ? new Date(runbook.generatedAt).toLocaleDateString() : '—'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-500">Status</p>
-                  <p className="mt-1 font-semibold text-slate-900">{runbook.status || '—'}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
+        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          {error}
         </div>
       )}
+
+      <div className="grid gap-6">
+
+        {crs.map((cr) => (
+          (() => {
+            const runbookGenerated = Boolean(cr.runbookGenerated || cr.hasRunbook || cr.generatedRunbook || cr.runbookId || cr.runbook)
+
+            return (
+
+          <div
+            key={cr.crId}
+            className="bg-white rounded-2xl shadow p-6 border"
+          >
+
+            <div className="flex justify-between items-start gap-4">
+
+              <div>
+
+                <h2 className="text-2xl font-semibold">
+                  {cr.title}
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-2 font-medium">
+                  Created:{" "}
+                  {new Date(cr.createdAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </p>
+
+                <p className="text-gray-600 mt-2">
+                  {cr.domain} • {cr.region}
+                </p>
+
+                <div className="flex gap-2 mt-4 flex-wrap">
+
+                  <span className="badge-risk bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    {cr.riskLevel} RISK
+                  </span>
+
+                  <span className="badge-radius bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    {cr.blastRadius}
+                  </span>
+
+                  {runbookGenerated && (
+                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-semibold">
+                      RUNBOOK GENERATED
+                    </span>
+                  )}
+
+                </div>
+
+              </div>
+
+              {runbookGenerated ? (
+                <button
+                  onClick={() => navigate(`/runbooks/${cr.crId}`)}
+                  className="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-xl font-semibold"
+                >
+                  View Runbook
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleGenerate(cr.crId)}
+                  disabled={generatingCrId === cr.crId}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {generatingCrId === cr.crId ? 'Generating...' : 'Generate Runbook'}
+                </button>
+              )}
+
+            </div>
+
+          </div>
+
+            )
+          })()
+
+        ))}
+
+      </div>
+
+      {crs.length === 0 && (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
+          No eligible change requests available.
+        </div>
+      )}
+
     </div>
   )
 }

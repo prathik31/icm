@@ -18,6 +18,7 @@ import com.telecom.change_request_service.dto.AssetDTO;
 import com.telecom.change_request_service.dto.ChangeRequestResponseDTO;
 import com.telecom.change_request_service.dto.CrAssessmentResponseDTO;
 import com.telecom.change_request_service.dto.CreateChangeRequestDTO;
+import com.telecom.change_request_service.dto.RiskAssessmentDTO;
 import com.telecom.change_request_service.dto.SubmitChangeRequestResponseDTO;
 import com.telecom.change_request_service.dto.event.ChangeRequestEvent;
 import com.telecom.change_request_service.dto.event.CrRiskConfirmedEvent;
@@ -212,7 +213,7 @@ public class ChangeRequestService {
     }
 
     public List<ChangeRequestResponseDTO> getAllChangeRequests() {
-        List<ChangeRequest> changeRequests = changeRequestRepository.findAll();
+        List<ChangeRequest> changeRequests = changeRequestRepository.findAllByOrderByCreatedAtDesc();
         return changeRequests.stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -290,6 +291,37 @@ public class ChangeRequestService {
                 .collect(Collectors.toList());
 
         dto.setAssets(assetDTOs);
+        dto.setRiskAssessment(loadRiskAssessment(entity.getCrId()));
         return dto;
+    }
+
+    private RiskAssessmentDTO loadRiskAssessment(String crId) {
+        return crAssessmentRepository.findLatestByCrId(crId).stream()
+                .findFirst()
+                .map(assessment -> {
+                    List<String> recommendations = readJsonList(assessment.getRecommendationsJson());
+                    List<String> riskIndicators = readJsonList(assessment.getRiskIndicatorsJson());
+                    return new RiskAssessmentDTO(
+                            assessment.getRiskScore(),
+                            assessment.getRiskLevel(),
+                            assessment.getBlastRadius() != null ? assessment.getBlastRadius().name() : null,
+                            assessment.getConfidence(),
+                            assessment.getExecutiveSummary(),
+                            assessment.getTechnicalAnalysis(),
+                            assessment.getCabGuidance(),
+                            recommendations,
+                            riskIndicators);
+                })
+                .orElse(null);
+    }
+
+    private List<String> readJsonList(String json) {
+        try {
+            return objectMapper.readValue(
+                    json != null ? json : "[]",
+                    new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            return List.of();
+        }
     }
 }

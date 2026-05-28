@@ -1,34 +1,151 @@
-# ICM Risk Intelligence Agent — Complete Developer Guide
+# Risk Assessment Agent — Developer Guide
 
 ## Overview
 
-The **ICM Risk Intelligence Agent** is a Python-based microservice that consumes change request events from orchestration (Java/Spring) services, enriches them with topology and historical intelligence, predicts operational risk using XGBoost models, generates grounded LLM explanations, persists assessments to MySQL, and publishes standardized assessment events back to the enterprise event bus (Kafka).
+The **Risk Assessment Agent** is a Python-based microservice that consumes change request events from orchestration systems, enriches them with network topology and historical intelligence, predicts operational risk using trained XGBoost models, generates grounded LLM explanations via Groq, persists assessments to MySQL, and publishes standardized assessment events back to the enterprise event bus (Kafka).
 
 ### Key Capabilities
-- **Contract-first Kafka integration** — JSON + Pydantic models in `contracts/`
-- **Deterministic risk scoring** — XGBoost regressor + classifier
-- **Grounded reasoning** — Groq LLM with defensive JSON parsing
-- **Transactional persistence** — MySQL with audit trails
-- **Dead-letter queue (DLQ)** — For invalid or failed events
-- **REST API** — FastAPI endpoint for direct risk analysis
-- **Multi-layered intelligence** — Topology, historical, similarity, and feature engineering
+- **Contract-first Kafka integration** — JSON + Pydantic models for strict event validation (`contracts/`)
+- **Multi-engine intelligence** — Feature engineering, topology analysis, historical similarity, and calibration
+- **ML-powered risk scoring** — XGBoost regressor (risk_score: 0-100) + classifier (risk_level: LOW/MEDIUM/HIGH/CRITICAL)
+- **LLM-grounded reasoning** — Groq LLaMA-2 with defensive JSON parsing for human-readable narratives
+- **Transactional persistence** — MySQL ORM with audit trails and grounding evidence storage
+- **Robust error handling** — Dead-letter queue (DLQ) for invalid/failed events; detailed logging
+- **REST API** — FastAPI endpoint for synchronous risk analysis and health checks
+- **Production-ready** — Retry logic, connection pooling, structured logging, model versioning
 
 ---
 
-## Mandatory Setup Instructions
+## Repository Layout & Module Guide
+
+```
+risk-assessment/
+├── agent/                         # FastAPI app & routes
+│   ├── main.py                   # FastAPI entrypoint, endpoints, request models
+│   └── response_builder.py       # Merges predictions + LLM reasoning into RiskAssessmentEvent
+├── config/
+│   └── settings.py               # Environment variables & app settings (AppSettings dataclass)
+├── contracts/                     # Kafka event schemas (Pydantic models)
+│   ├── models.py                 # ChangeRequestEvent, RiskAssessmentEvent (contracts)
+│   ├── change_request_event.json # Sample ChangeRequestEvent
+│   └── risk_assessment_event.json# Sample RiskAssessmentEvent
+├── data/                          # CSV training & enrichment data
+│   ├── historical_change_requests.csv    # CR metadata for training
+│   ├── historical_cr_assets.csv          # Asset mappings & criticality
+│   ├── historical_cr_outcomes.csv        # Ground truth (success/rollback/outage)
+│   ├── historical_risk_assessments.csv   # Pre-computed risk baselines
+│   └── network_inventory.csv             # Topology & device metadata
+├── intelligence/                  # Context & feature enrichment engines
+│   ├── calibration_engine.py     # Confidence scoring & thresholds
+│   ├── context_builder.py        # Loads data, computes historical metrics
+│   ├── feature_engine.py         # Extracts ML features from context
+│   ├── historical_engine.py      # Similarity matching with past changes
+│   ├── similarity_engine.py      # Semantic similarity scoring
+│   └── topology_engine.py        # Network topology analysis & blast radius
+├── llm/                           # LLM integration (Groq)
+│   ├── client.py                 # Groq API wrapper
+│   ├── grounded_reasoner.py      # Reasoning prompt builder & response parsing
+│   └── prompt_builder.py         # Templates for LLM reasoning
+├── ml/                            # ML pipeline (feature engineering, training, inference)
+│   ├── feature_schema.py         # Feature definitions & scaling
+│   ├── predictor.py              # XGBoost inference (regressor + classifier)
+│   └── trainer.py                # Training pipeline (run locally for model updates)
+├── models/                        # Persisted trained model artifacts (pickle)
+│   ├── risk_regressor.pkl        # XGBoost regressor (risk_score)
+│   ├── risk_classifier.pkl       # XGBoost classifier (risk_level)
+│   ├── feature_names.pkl         # Feature name mapping
+│   └── risk_label_mapping.pkl    # Risk level label encoding
+├── messaging/                     # Kafka producers/consumers
+│   ├── consumer.py               # Listens to change-requests topic; runs full pipeline
+│   ├── dlq_listener.py           # Monitors risk-assessments-dlq
+│   └── producer.py               # Publishes RiskAssessmentEvent
+├── persistence/                   # MySQL ORM & database schema
+│   ├── db.py                     # SQLAlchemy engine & session factory
+│   ├── init_db.py                # Schema initialization script
+│   ├── models.py                 # SQLAlchemy ORM models (RiskAssessment, GroundingEvidence)
+│   └── repository.py             # CRUD operations for assessments
+├── requirements.txt              # Python dependencies
+├── docker-compose.yml            # Kafka + Zookeeper services
+└── README.md                      # This file
+```
+
+## Key Modules & Responsibilities
+
+### 1. Agent (`agent/main.py`)
+- **FastAPI app** with OpenAPI docs at `/docs`
+- **Endpoints**:
+  - `GET /health` — Service health check
+  - `POST /analyze` — Synchronous risk analysis (REST API)
+- **Request models**: AnalyzeRequest (Pydantic)
+- **Response format**: RiskAssessmentEvent (see contracts)
+
+### 2. Configuration (`config/settings.py`)
+- Reads environment variables (`.env` file or system env)
+- Defines AppSettings (database URL, Kafka brokers, Groq API key, model path, etc.)
+- Instantiated as a singleton: `settings = AppSettings()`
+
+### 3. Contracts (`contracts/`)
+- **ChangeRequestEvent** (input): domain, change_type, region, asset_count, duration_minutes, etc.
+- **RiskAssessmentEvent** (output): risk_score, risk_level, blast_radius, confidence, reasoning, grounding_evidence
+- Enables schema validation and communication with upstream/downstream systems
+
+### 4. Intelligence (`intelligence/`)
+- **context_builder.py**: Orchestrates all context engines; loads CSV data and computes enrichment
+- **feature_engine.py**: Extracts 20+ features from context (e.g., asset_count, internet_facing_ratio, core_asset_ratio)
+- **topology_engine.py**: Computes blast radius (MINIMAL/LOCAL/REGIONAL/GLOBAL) based on network dependencies
+- **similarity_engine.py**: Finds past changes most similar to the incoming CR (feature-space nearest neighbors)
+- **historical_engine.py**: Computes grounding evidence (# similar changes, # with outages, # rolled back)
+- **calibration_engine.py**: Adjusts confidence scores based on signal strength
+
+### 5. ML (`ml/`)
+- **feature_schema.py**: Defines 20+ features; handles scaling, normalization, feature name mapping
+- **predictor.py**: Loads trained models (`.pkl` files); runs inference on feature vectors
+  - Returns: risk_score (0-100), risk_level (LOW/MEDIUM/HIGH/CRITICAL), confidence (0.0-1.0)
+- **trainer.py**: Full training pipeline (run locally with historical data to retrain models)
+
+### 6. LLM (`llm/`)
+- **client.py**: Thin wrapper around Groq API (handles retries, error handling)
+- **grounded_reasoner.py**: 
+  - Accepts risk predictions + grounding evidence
+  - Calls LLM with structured prompt (see prompt_builder.py)
+  - Parses JSON response defensively (fallback to safe defaults if LLM produces invalid JSON)
+  - Returns: executive_summary, technical_analysis, cab_guidance, recommendations
+- **prompt_builder.py**: Templates for LLM prompts (context-aware reasoning instructions)
+
+### 7. Messaging (`messaging/`)
+- **consumer.py**: Kafka consumer for `change-requests` topic
+  - Validates ChangeRequestEvent (Pydantic)
+  - Runs full pipeline: context → features → prediction → LLM → persistence → publish
+  - On error: publishes to DLQ with error details
+- **producer.py**: Kafka producer for `ai.risk.completed` topic
+  - Publishes RiskAssessmentEvent (validated Pydantic)
+- **dlq_listener.py**: Monitors `risk-assessments-dlq` for failed events (for debugging)
+
+### 8. Persistence (`persistence/`)
+- **db.py**: SQLAlchemy engine factory; connection pooling; session management
+- **models.py**: ORM models
+  - `RiskAssessment`: id, cr_id, risk_score, risk_level, blast_radius, confidence, executive_summary, technical_analysis, cab_guidance, recommendations, grounding_evidence_id, created_at, updated_at
+  - `GroundingEvidence`: similar_changes_analyzed, with_outages, with_rollbacks, failed, created_at
+  - `EventAudit`: event_id, event_type, correlation_id, payload, created_at
+- **repository.py**: CRUD operations (save_assessment, get_assessment, get_recent_assessments, etc.)
+- **init_db.py**: Creates database schema; run once at setup: `python -m risk-assessment.persistence.init_db`
+
+---
+
+## Setup Instructions
 
 ### Prerequisites
 - **Python 3.10+** (virtualenv recommended)
-- **MySQL 8+** (local or hosted)
-- **Docker & Docker Compose** (recommended for Kafka + Zookeeper)
-- **Groq API Key** (free tier available at groq.com)
-- **Network access** — Groq API and Kafka broker
+- **MySQL 8.0+** (local, Docker, or managed cloud instance)
+- **Docker & Docker Compose** (for Kafka + Zookeeper)
+- **Groq API Key** (free tier at [groq.com](https://groq.com))
+- **Network access** to Groq API and Kafka broker
 
-### Step 1: Clone & Initialize Environment
+### Step 1: Environment Setup
 
 ```powershell
-# Clone the repository
-cd C:\Users\sweta.singh5\Desktop\capstone\python-agents-icm\risk-assessment
+# Navigate to risk-assessment directory
+cd risk-assessment
 
 # Create Python virtual environment
 python -m venv venv
@@ -36,7 +153,8 @@ python -m venv venv
 # Activate virtual environment (Windows)
 .\venv\Scripts\Activate.ps1
 
-# On Linux/Mac, use: source venv/bin/activate
+# On Linux/Mac:
+# source venv/bin/activate
 ```
 
 ### Step 2: Install Dependencies
@@ -45,18 +163,9 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-**Key dependencies:**
-- `fastapi`, `uvicorn` — REST API framework
-- `kafka-python` — Kafka producer/consumer
-- `sqlalchemy`, `pymysql` — Database ORM & MySQL driver
-- `pydantic` — Data validation
-- `joblib`, `xgboost` — ML model serialization & prediction
-- `groq` — LLM reasoning engine
-- `python-dotenv` — Environment variable management
+### Step 3: Configure Environment
 
-### Step 3: Create Environment Configuration
-
-Create a `.env` file in the project root:
+Create `.env` file in `risk-assessment/` directory:
 
 ```env
 # API Configuration
@@ -70,97 +179,133 @@ RISK_ASSESSMENT_TOPIC=ai.risk.completed
 DLQ_TOPIC=risk-assessments-dlq
 
 # Database Configuration
-MYSQL_URL=mysql+pymysql://root:password@localhost/icm_risk_intelligence
+MYSQL_URL=mysql+pymysql://root:root@localhost:3306/icm_risk_db
 
 # LLM Configuration (Groq)
-GROQ_API_KEY=your_actual_groq_api_key_here
+GROQ_API_KEY=gsk_your_actual_key_here
 
 # Model Path
 MODEL_PATH=./models
+
+# Feature Engineering
+ENABLE_TOPOLOGY_FEATURES=true
+ENABLE_HISTORICAL_FEATURES=true
+
+# Logging
+LOG_LEVEL=INFO
 ```
 
-### Step 4: Initialize Database Schema
+### Step 4: Database Setup
 
 ```powershell
-# Create MySQL database
-mysql -u root -p
-CREATE DATABASE icm_db;
-EXIT;
+# Option A: Use Docker (recommended for local dev)
+docker run --name mysql_icm -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 -d mysql:8.0
 
-# Initialize schema
-python -m persistence.init_db
+# Option B: Use existing MySQL instance
+# Update MYSQL_URL in .env accordingly
+
+# Initialize database schema
+python -m risk-assessment.persistence.init_db
 ```
 
 This creates:
-- `risk_assessments` — Main assessment records
-- `grounding_evidence` — Supporting historical evidence
-- `event_audit` — Audit trail of all events
+- `icm_risk_db` database
+- `risk_assessments` table (main assessment records)
+- `grounding_evidence` table (historical evidence)
+- `event_audit` table (audit trail)
 
-### Step 5: Start Kafka & Zookeeper (Docker)
+### Step 5: Start Kafka (for event-driven mode)
 
 ```powershell
-# Start services in background
 docker-compose up -d
 
 # Verify services are running
 docker-compose ps
 
-# View logs
+# View Kafka logs
 docker-compose logs -f kafka
 ```
 
 ---
 
-## Running the System
+## Running the Service
 
-### 1. Start REST API Server
+### Mode 1: REST API (Synchronous Analysis)
 
 ```powershell
-python -m agent.main
+python -m risk-assessment.agent.main
 ```
 
-**Output:**
+Output:
 ```
-INFO:     Uvicorn running on http://0.0.0.0:9010 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://127.0.0.1:9010 (Press CTRL+C to quit)
 ```
 
 **Available endpoints:**
-- `GET /health` — Health check
-- `POST /analyze` — Synchronous risk analysis
+- `GET http://localhost:9010/health` — Health check
+- `POST http://localhost:9010/analyze` — Risk analysis
+- `GET http://localhost:9010/docs` — Swagger UI
 
-### 2. Start Kafka Consumer (Event Pipeline)
+Example request:
+```bash
+curl -X POST "http://localhost:9010/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "NETWORK",
+    "change_type": "CONFIG_UPDATE",
+    "region": "US-EAST-1",
+    "asset_count": 5,
+    "duration_minutes": 30,
+    "is_peak_hours": false,
+    "is_weekend": false,
+    "rollback_available": true,
+    "has_core_asset": true,
+    "any_internet_facing": true,
+    "all_assets_redundant": false,
+    "max_asset_criticality": "HIGH",
+    "asset_ids": ["ASSET-001", "ASSET-002", "ASSET-003"]
+  }'
+```
 
+### Mode 2: Kafka Event Stream (Asynchronous)
+
+Terminal 1 — Start API server:
 ```powershell
-python -m messaging.consumer
+python -m risk-assessment.agent.main
+```
+
+Terminal 2 — Start Kafka consumer:
+```powershell
+python -m risk-assessment.messaging.consumer
 ```
 
 This service:
-- Listens on `change-requests` topic
-- Validates incoming change request events
-- Runs risk prediction & reasoning
+- Listens to `change-requests` topic
+- Validates events (ChangeRequestEvent schema)
+- Runs full analysis pipeline
 - Persists to MySQL
 - Publishes results to `ai.risk.completed` topic
+- On error: publishes to `risk-assessments-dlq` (dead-letter queue)
 
-### 3. Monitor Dead-Letter Queue (DLQ)
+### Mode 3: Monitor Dead-Letter Queue
 
+Terminal 3 — Watch for failed events:
 ```powershell
-python -m messaging.dlq_listener
+python -m risk-assessment.messaging.dlq_listener
 ```
 
-Watches `risk-assessments-dlq` for:
+This helps debug:
 - Invalid event schemas
 - Processing failures
 - Corrupted messages
 
 ---
 
-## Backend APIs
+## API Endpoints & Contracts
 
-### 1. Health Check Endpoint
+### 1. Health Check
 
 **Endpoint:** `GET /health`
-
-**Purpose:** Verify service is running and healthy
 
 **Response:**
 ```json
@@ -171,53 +316,53 @@ Watches `risk-assessments-dlq` for:
 }
 ```
 
----
-
-### 2. Synchronous Risk Analysis Endpoint
+### 2. Synchronous Risk Analysis
 
 **Endpoint:** `POST /analyze`
 
-**Purpose:** Analyze a change request and return risk assessment synchronously
-
-**Request Body:**
+**Request Schema** (AnalyzeRequest):
 ```json
 {
-  "domain": "NETWORK",
-  "change_type": "CONFIG_UPDATE",
-  "region": "US-EAST-1",
-  "asset_count": 5,
-  "duration_minutes": 30,
-  "is_peak_hours": false,
-  "is_weekend": false,
-  "rollback_available": true,
-  "has_core_asset": false,
-  "any_internet_facing": true,
-  "all_assets_redundant": false,
-  "max_asset_criticality": "HIGH",
-  "asset_ids": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005"]
+  "domain": "NETWORK",                      // Change domain (NETWORK, DATABASE, APPLICATION, SECURITY, etc.)
+  "change_type": "CONFIG_UPDATE",           // Type (CONFIG_UPDATE, VERSION_UPGRADE, HOTFIX, etc.)
+  "region": "US-EAST-1",                    // Geographic region
+  "asset_count": 5,                         // Number of affected assets
+  "duration_minutes": 30,                   // Estimated change duration
+  "is_peak_hours": false,                   // Whether change is during peak traffic
+  "is_weekend": false,                      // Whether change is on weekend
+  "rollback_available": true,               // Can rollback if needed
+  "has_core_asset": true,                   // Change affects core infrastructure
+  "any_internet_facing": true,              // Any affected assets are public-facing
+  "all_assets_redundant": false,            // Are all affected assets redundant?
+  "max_asset_criticality": "HIGH",          // Highest criticality level (LOW, MEDIUM, HIGH, CRITICAL)
+  "asset_ids": ["ASSET-001", "ASSET-002", "ASSET-003"]  // Specific assets
 }
 ```
 
-**Response:**
+**Response Schema** (RiskAssessmentEvent):
 ```json
 {
   "assessment_id": "550e8400-e29b-41d4-a716-446655440000",
   "cr_id": null,
-  "risk_score": 65.5,
-  "risk_level": "MEDIUM",
-  "blast_radius": "REGIONAL",
-  "confidence": 0.8,
-  "executive_summary": "This change carries moderate risk due to multiple internet-facing assets and high criticality components. Regional impact is likely if rollback is required.",
-  "technical_analysis": "The configuration change affects 5 assets including high-criticality components. Network topology shows regional dependencies with 3 redundant paths available.",
-  "cab_guidance": "Recommend scheduling during maintenance window. Ensure rollback procedures are tested. Consider phased deployment approach.",
+  "risk_score": 65.5,                       // 0-100 continuous score
+  "risk_level": "MEDIUM",                   // LOW, MEDIUM, HIGH, CRITICAL
+  "blast_radius": "REGIONAL",               // MINIMAL, LOCAL, REGIONAL, GLOBAL
+  "confidence": 0.85,                       // 0.0-1.0 confidence in prediction
+  "executive_summary": "This change carries moderate risk...",
+  "technical_analysis": "The configuration change affects 5 assets...",
+  "cab_guidance": "Recommend scheduling during maintenance window...",
   "recommendations": [
     "Execute during low-traffic window",
     "Pre-stage rollback configuration",
     "Monitor BGP changes during execution",
     "Have network team on standby"
   ],
-  "risk_indicators": ["HIGH_CRITICALITY", "INTERNET_FACING", "REGIONAL_IMPACT"],
-  "grounding_evidence": {
+  "risk_indicators": [                      // Risk flags
+    "HIGH_CRITICALITY",
+    "INTERNET_FACING",
+    "REGIONAL_IMPACT"
+  ],
+  "grounding_evidence": {                   // Historical evidence
     "similar_changes_analyzed": 12,
     "similar_changes_with_outages": 2,
     "similar_changes_with_rollbacks": 3,
@@ -233,17 +378,13 @@ Watches `risk-assessments-dlq` for:
 ```
 
 **Query Parameters:**
-- `debug=true` (optional) — Returns additional model prediction details for troubleshooting
-
----
+- `debug=true` (optional) — Returns additional model prediction details
 
 ### 3. Kafka: Change Request Event (Consumer)
 
 **Topic:** `change-requests`
 
-**Format:** JSON
-
-**Message Schema:**
+**Message Schema** (ChangeRequestEvent):
 ```json
 {
   "cr_id": "CR-2026-001234",
@@ -268,36 +409,233 @@ Watches `risk-assessments-dlq` for:
 }
 ```
 
----
-
 ### 4. Kafka: Risk Assessment Event (Producer)
 
 **Topic:** `ai.risk.completed`
 
-**Format:** JSON
+**Message Schema:** Same as `/analyze` response (see above)
 
-**Message Schema:**
+### 5. Kafka: Dead-Letter Queue
+
+**Topic:** `risk-assessments-dlq`
+
+**Error Message Format:**
 ```json
 {
-  "assessment_id": "550e8400-e29b-41d4-a716-446655440000",
-  "cr_id": "CR-2026-001234",
+  "original_event": {
+    "cr_id": "CR-2026-001234",
+    "domain": "NETWORK",
+    ...
+  },
+  "error": {
+    "error_type": "ValidationError",
+    "error_message": "ChangeRequestEvent validation failed - missing required field 'asset_ids'",
+    "timestamp": "2026-05-15T02:05:00.123456Z",
+    "correlation_id": "corr-12345"
+  }
+}
+```
+
+---
+
+## Training & Model Updates
+
+### Model Files
+Trained XGBoost models are persisted in `models/`:
+- `risk_regressor.pkl` — Continuous risk score (0-100)
+- `risk_classifier.pkl` — Risk level classification (LOW/MEDIUM/HIGH/CRITICAL)
+- `feature_names.pkl` — Feature name mapping for consistency
+- `risk_label_mapping.pkl` — Label encoding (class index → label name)
+
+### Retraining Locally
+To retrain models with updated historical data:
+
+```powershell
+# 1. Update CSV files in data/
+cp ../shared-data/historical_change_requests.csv data/
+cp ../shared-data/historical_cr_outcomes.csv data/
+
+# 2. Run training pipeline
+python -m risk-assessment.ml.trainer --output_dir ./models
+
+# 3. Validate on holdout set
+python -m risk-assessment.ml.trainer --validate_only
+```
+
+**Trainer outputs:**
+- Trained model artifacts (`.pkl` files) → `models/`
+- Training metrics (accuracy, AUC-ROC, precision/recall)
+- Feature importance scores
+
+---
+
+## Common Tasks
+
+### Check Service Health
+```bash
+curl http://localhost:9010/health
+```
+
+### Analyze a Change Request (REST)
+```bash
+curl -X POST "http://localhost:9010/analyze" \
+  -H "Content-Type: application/json" \
+  -d @sample_cr.json  # See API section above
+```
+
+### View API Documentation
+```
+http://localhost:9010/docs
+```
+
+### Check Kafka Topics
+```bash
+# List topics
+docker-compose exec kafka kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Consume from change-requests
+docker-compose exec kafka kafka-console-consumer.sh \
+  --topic change-requests \
+  --bootstrap-server localhost:9092 \
+  --from-beginning
+
+# Consume from ai.risk.completed
+docker-compose exec kafka kafka-console-consumer.sh \
+  --topic ai.risk.completed \
+  --bootstrap-server localhost:9092 \
+  --from-beginning
+```
+
+### View MySQL Data
+```bash
+mysql -u root -p icm_risk_db
+
+SELECT * FROM risk_assessments ORDER BY created_at DESC LIMIT 5;
+SELECT * FROM grounding_evidence ORDER BY created_at DESC LIMIT 5;
+```
+
+---
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `ModuleNotFoundError: No module named 'risk-assessment'` | Python path not configured | Ensure you're running from `python-agents-icm/` directory; use `-m` flag: `python -m risk-assessment.agent.main` |
+| `SQLALCHEMY_DATABASE_URI connection failed` | MySQL not running or wrong credentials | Check `.env` file; verify MySQL is running (`docker ps`); run init_db: `python -m risk-assessment.persistence.init_db` |
+| `GroqAPIKeyError` | Missing or invalid API key | Get key from [groq.com](https://groq.com); set in `.env`: `GROQ_API_KEY=gsk_...` |
+| `Kafka broker not available` | Kafka not running | Start: `docker-compose up -d`; verify: `docker-compose ps` |
+| `JSON decode error from LLM` | LLM returned invalid JSON | Grounded reasoner has defensive fallback; check logs; retry manually |
+| `No suitable event found in CSV` | Historical data too small | Add more rows to `data/historical_change_requests.csv` and retrain |
+| `Models not found in ./models/` | Model files missing | Run trainer: `python -m risk-assessment.ml.trainer` or copy from backup |
+
+---
+
+## Performance Notes
+
+| Metric | Typical Value | Notes |
+|--------|---------------|-------|
+| **API latency (REST)** | 1-3s | Includes feature engineering, prediction, LLM call (dominant), JSON parsing |
+| **Kafka consumer latency** | 2-5s | Same as REST + Kafka serialization overhead |
+| **Throughput** | 10-20 CRs/sec | Single process; horizontally scalable with Kafka consumer groups |
+| **Model inference** | <500ms | XGBoost prediction only (no LLM) |
+| **Feature engineering** | 200-500ms | CSV data load + context computation |
+| **LLM reasoning** | 1-3s | Groq API call (network-dependent) |
+| **Database write** | 50-100ms | MySQL transaction commit |
+| **Memory per process** | ~500MB | Includes: loaded CSV data, models, LLM client connection |
+
+---
+
+## Advanced Configuration
+
+### Custom Model Paths
+```env
+MODEL_PATH=/var/models/icm_risk_models
+```
+
+### LLM Model Selection
+The service uses Groq models. Common options:
+- `llama-2-70b-chat` — Larger, more accurate
+- `mixtral-8x7b-32768` — Faster, good balance
+
+Edit `llm/client.py` to change the model:
+```python
+LLM_MODEL = "mixtral-8x7b-32768"
+```
+
+### Feature Engineering Tuning
+Enable/disable feature groups in `.env`:
+```env
+ENABLE_TOPOLOGY_FEATURES=true
+ENABLE_HISTORICAL_FEATURES=true
+ENABLE_TEMPORAL_FEATURES=true
+ENABLE_CRITICALITY_FEATURES=true
+```
+
+### Confidence Thresholds
+Adjust in `intelligence/calibration_engine.py`:
+```python
+HISTORICAL_CONFIDENCE_BOOST = 0.10
+GROUNDING_CONFIDENCE_BOOST = 0.10
+MIN_CONFIDENCE = 0.50  # Reject assessments below this
+```
+
+---
+
+## Monitoring & Logging
+
+### Structured Logging
+All events are logged with correlation IDs:
+```
+timestamp=2026-05-15T02:05:00.123Z level=INFO service=risk-agent correlation_id=corr-12345 event=CR_RECEIVED cr_id=CR-2026-001234
+timestamp=2026-05-15T02:05:00.456Z level=INFO service=risk-agent correlation_id=corr-12345 event=FEATURES_COMPUTED risk_score=65.5 risk_level=MEDIUM
+timestamp=2026-05-15T02:05:00.789Z level=INFO service=risk-agent correlation_id=corr-12345 event=LLM_GROUNDING_COMPLETE cab_guidance_length=256
+timestamp=2026-05-15T02:05:01.012Z level=INFO service=risk-agent correlation_id=corr-12345 event=ASSESSMENT_PERSISTED assessment_id=uuid db_latency_ms=45
+timestamp=2026-05-15T02:05:01.234Z level=INFO service=risk-agent correlation_id=corr-12345 event=ASSESSMENT_PUBLISHED topic=ai.risk.completed
+```
+
+### Metrics to Monitor
+- **Model accuracy**: Track actual outcomes vs. predictions on holdout set
+- **LLM reasoning quality**: Measure coherence and actionability
+- **Kafka lag**: Monitor consumer lag; alert if > 100 messages
+- **Database connection pool**: Monitor active/idle connections
+- **Error rate**: Track DLQ publish rate; investigate spikes
+
+---
+
+## Integration with Runbook Agent
+
+After risk assessment completes, downstream systems (e.g., Runbook Agent) can:
+1. Subscribe to `ai.risk.completed` topic
+2. Extract risk_score, risk_level, blast_radius, recommendations
+3. Use as context for runbook generation (see [runbook-agent README](../runbook-agent/README.md))
+
+Example integration:
+```python
+# Runbook Agent receives
+risk_assessment = {
   "risk_score": 65.5,
   "risk_level": "MEDIUM",
   "blast_radius": "REGIONAL",
-  "confidence": 0.8,
-  "executive_summary": "This change carries moderate risk due to multiple internet-facing assets and high criticality components. Regional impact is likely if rollback is required.",
-  "technical_analysis": "The configuration change affects 5 assets including high-criticality components. Network topology shows regional dependencies with 3 redundant paths available.",
-  "cab_guidance": "Recommend scheduling during maintenance window. Ensure rollback procedures are tested. Consider phased deployment approach.",
-  "recommendations": [
-    "Execute during low-traffic window",
-    "Pre-stage rollback configuration",
-    "Monitor BGP changes during execution",
-    "Have network team on standby"
-  ],
-  "risk_indicators": ["HIGH_CRITICALITY", "INTERNET_FACING", "REGIONAL_IMPACT"],
-  "grounding_evidence": {
-    "similar_changes_analyzed": 12,
-    "similar_changes_with_outages": 2,
+  "recommendations": ["Execute during low-traffic window", ...]
+}
+
+# Uses in prompt:
+prompt = f"""
+Given the risk assessment: {risk_assessment}
+Generate a detailed runbook with extra care for: {risk_assessment['recommendations']}
+"""
+```
+
+---
+
+## Next Steps
+
+- [ ] Implement model performance monitoring dashboard
+- [ ] Add support for additional ML algorithms (LightGBM, CatBoost)
+- [ ] Integrate with external knowledge bases (runbooks, incident history)
+- [ ] Fine-tune LLM prompts based on operator feedback
+- [ ] Add multi-tenant support with tenant-specific models
+- [ ] Implement A/B testing framework for model variants
     "similar_changes_with_rollbacks": 3,
     "similar_changes_failed": 1
   },

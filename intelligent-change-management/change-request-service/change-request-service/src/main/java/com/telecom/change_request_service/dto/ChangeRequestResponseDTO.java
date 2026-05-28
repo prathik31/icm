@@ -25,4 +25,5 @@ public class ChangeRequestResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<AssetResponseDTO> assets;
+    private RiskAssessmentDTO riskAssessment;
 }

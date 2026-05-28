@@ -33,7 +33,6 @@ public class ApprovalWorkflowService {
 	private final ApprovalFlowRepository approvalFlowRepository;
 	private final ApprovalDecisionRepository approvalDecisionRepository;
 	private final ApprovalDecisionProducer approvalDecisionProducer;
-	private final RunbookGenerationService runbookGenerationService;
 	private final RestTemplate restTemplate;
 
 	@Value("${app.change-request-service.url:http://localhost:9004}")
@@ -101,13 +100,6 @@ public class ApprovalWorkflowService {
 			updateChangeRequestStatus(flow.getCrId());
 		} catch (Exception ex) {
 			log.error("Failed to update change request status for CR: {}", flow.getCrId(), ex);
-		}
-
-		try {
-			runbookGenerationService.generateRunbook(flow.getCrId());
-			log.info("Runbook generated successfully for CR: {}", flow.getCrId());
-		} catch (Exception ex) {
-			log.error("Runbook generation failed for CR: {}", flow.getCrId(), ex);
 		}
 
 		publishDecision(flow, decision);

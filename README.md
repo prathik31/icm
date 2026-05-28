@@ -1,103 +1,176 @@
 # Intelligent Change Management (ICM)
 
-This repository contains the full Intelligent Change Management platform with three main layers:
+## Setup and Run Instructions
 
-- `intelligent-change-management/` — Java backend microservices
-- `python-agents-icm/` — Python agent services and AI pipelines
-- `telecom-change-ui/` — React + Vite frontend
-
-> Note: `intelligent-change-management/` currently contains its own nested Git repository (`.git`). If you want this workspace to become a single monorepo, remove or relocate `intelligent-change-management/.git` before initializing the root repo.
-
----
-
-## Repository layout
-
-```
-./
-  .gitignore
-  README.md
-  intelligent-change-management/   # Java backend services
-  python-agents-icm/              # Python agent microservices
-  telecom-change-ui/              # React frontend
-```
-
-### Project folders
-
-- `intelligent-change-management/`
-  - Java microservices for authentication, approval, change request processing, API gateway, and service integration
-  - Contains internal Maven wrapper files and Java build output paths
-- `python-agents-icm/`
-  - Python-based agents and AI processing services
-  - Includes `anomaly-agent/`, `risk-assessment/`, `runbook-agent/`, and support code
-- `telecom-change-ui/`
-  - Frontend web application built with React and Vite
+### Prerequisites
+- **Java**: Version 17 or higher
+- **Python**: Version 3.8 or higher
+- **Node.js**: Version 16 or higher (for frontend)
+- **npm**: Comes with Node.js
+- **Maven**: Bundled with Java microservices (mvnw wrapper included)
 
 ---
 
-## Recommended Git setup
+## 1. Java Microservices (`intelligent-change-management`)
 
-This workspace is not currently a Git repository at the root level. To initialize it for the GitHub repo `https://github.com/prathik31/icm.git`, run:
+**Services**: approval-service, auth-service, change-request-service, runbook-service
 
+#### Setup
 ```bash
-cd "<your-workspace-path>"
-git init
-git add .
-git commit -m "Initial import of ICM project"
-git branch -M main
-git remote add origin https://github.com/prathik31/icm.git
-git push -u origin main
+cd intelligent-change-management
 ```
 
-### Important note about nested repository
-
-`intelligent-change-management/` already contains `.git` and is currently a separate Git repository. If your goal is to track the full project in a single root repository, do one of the following:
-
-1. Remove or move `intelligent-change-management/.git` before initializing the root repo, or
-2. Treat `intelligent-change-management/` as a separate repo and do not add it to the root project as a tracked folder.
-
----
-
-## How to clone and retrieve the full project
-
+#### Build All Services
 ```bash
-git clone https://github.com/prathik31/icm.git
-cd icm
+# On Linux/Mac
+./mvnw clean package
+
+# On Windows
+.\mvnw.cmd clean package
 ```
 
-If the root repository is initialized successfully, teammates can clone the project and follow the instructions below.
+#### Build a Specific Service
+```bash
+cd approval-service
+# On Linux/Mac
+../mvnw clean package
+
+# On Windows
+..\mvnw.cmd clean package
+```
+
+#### Run a Service
+```bash
+# After building, run the JAR from the target folder
+cd approval-service/target
+java -jar approval-service-0.0.1-SNAPSHOT.jar
+
+# Or run directly from the source directory
+cd approval-service
+# On Linux/Mac
+../mvnw spring-boot:run
+
+# On Windows
+..\mvnw.cmd spring-boot:run
+```
 
 ---
 
-## Setup and run instructions
+## 2. Python Agent Services (`python-agents-icm`)
 
-### 1. Java backend (`intelligent-change-management`)
+**Services**: risk-assessment, runbook-agent
 
-1. Change into the backend folder:
+#### Setup
+```bash
+cd python-agents-icm
 
-   ```bash
-   cd intelligent-change-management
-   ```
+# Create a virtual environment
+python -m venv venv
 
-2. Build a service using the Maven wrapper:
+# Activate virtual environment
+# On Linux/Mac
+source venv/bin/activate
 
-   ```bash
-   ./mvnw clean package
-   ```
+# On Windows
+venv\Scripts\activate
 
-   On Windows use:
+# Install dependencies
+pip install -r requirements.txt
+```
 
-   ```powershell
-   .\mvnw.cmd clean package
-   ```
+#### Run Risk Assessment Agent
+```bash
+cd risk-assessment
 
-3. Build a specific service directory if needed:
+# Install service-specific dependencies
+pip install -r requirements.txt
 
-   ```bash
-   cd approval-service
-   .\mvnw.cmd clean package
-   ```
+# Run the agent
+python agent/main.py
 
-4. Run a built service jar from its `target/` folder:
+# Or run with uvicorn (if exposed as API)
+uvicorn agent.main:app --reload --port 8000
+```
+
+#### Run Runbook Agent
+```bash
+cd runbook-agent
+
+# Install service-specific dependencies
+pip install -r requirements.txt
+
+# Run the agent
+python main.py
+
+# Or using pytest for tests
+pytest test_endpoint.py
+pytest test_scenarios.py
+```
+
+#### Using Docker (Optional)
+```bash
+cd risk-assessment
+docker-compose up
+```
+
+---
+
+## 3. Frontend (`telecom-change-ui`)
+
+**Technology**: React + Vite + Tailwind CSS
+
+#### Setup
+```bash
+cd telecom-change-ui
+
+# Install dependencies
+npm install
+```
+
+#### Development Server
+```bash
+npm run dev
+# Server runs at http://localhost:5173
+```
+
+#### Build for Production
+```bash
+npm run build
+# Output in dist/ folder
+```
+
+#### Preview Production Build
+```bash
+npm run preview
+```
+
+#### Linting
+```bash
+npm run lint
+```
+
+---
+
+## Quick Start (All Services)
+
+### Terminal 1: Java Backend
+```bash
+cd intelligent-change-management/approval-service
+../mvnw spring-boot:run
+```
+
+### Terminal 2: Python Agents
+```bash
+cd python-agents-icm/risk-assessment
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+python agent/main.py
+```
+
+### Terminal 3: Frontend
+```bash
+cd telecom-change-ui
+npm run dev
+```
 
    ```bash
    java -jar approval-service/target/<artifact>.jar

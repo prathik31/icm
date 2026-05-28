@@ -35,19 +35,19 @@ export const ExecutionStep = ({ step, index }) => {
             {step.command}
           </div>
         )}
-        {step.description && (
-          <p className="mb-2 text-sm text-slate-600">{step.description}</p>
+        {(step.action || step.description || step.title) && (
+          <p className="mb-2 text-sm text-slate-600">{step.action || step.description || step.title}</p>
         )}
-        {step.expectedOutput && (
+        {(step.expected_output || step.expectedOutput) && (
           <div className="mb-2 text-sm">
             <p className="mb-1 font-medium text-slate-700">Expected Output:</p>
-            <p className="text-slate-600">{step.expectedOutput}</p>
+            <p className="text-slate-600">{step.expected_output || step.expectedOutput}</p>
           </div>
         )}
-        {step.rollbackAction && (
+        {(step.rollback_action || step.rollbackAction || step.rollback) && (
           <div className="mt-3 border-l-2 border-orange-300 bg-orange-50 p-3 text-sm">
             <p className="mb-1 font-medium text-orange-900">Rollback:</p>
-            <p className="text-orange-800">{step.rollbackAction}</p>
+            <p className="text-orange-800">{step.rollback_action || step.rollbackAction || step.rollback}</p>
           </div>
         )}
       </div>

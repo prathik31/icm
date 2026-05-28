@@ -1,10 +1,13 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, UserCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useDataContext } from '../context/DataContext'
 
 const Navbar = () => {
   const { token, logout, role, email, name } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { refreshAll } = useDataContext()
 
   const handleLogout = () => {
     logout()
@@ -14,7 +17,13 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-[1560px] items-center justify-between gap-4 px-6 py-4">
-        <Link to="/dashboard" className="flex items-center gap-3">
+        <Link
+          to="/dashboard"
+          onClick={() => {
+            if (pathname === '/dashboard') refreshAll()
+          }}
+          className="flex items-center gap-3"
+        >
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-lg font-semibold text-white shadow-sm">
             TC
           </div>

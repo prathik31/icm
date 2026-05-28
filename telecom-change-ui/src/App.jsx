@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { DataProvider } from './context/DataContext'
+import { DataProvider, useDataContext } from './context/DataContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
@@ -21,6 +22,13 @@ import NotFound from './pages/NotFound'
 
 const Layout = ({ children }) => {
   const { token } = useAuth()
+  const { pathname } = useLocation()
+  const { refreshAll } = useDataContext()
+
+  useEffect(() => {
+    if (!token) return
+    refreshAll()
+  }, [pathname, token, refreshAll])
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

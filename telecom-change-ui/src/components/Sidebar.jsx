@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Home, FilePlus, ClipboardList, Clock, ListChecks, BookOpen } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useDataContext } from '../context/DataContext'
 
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: Home },
@@ -14,6 +15,8 @@ const navigation = [
 
 const Sidebar = () => {
   const { user, role } = useAuth()
+  const { pathname } = useLocation()
+  const { refreshAll } = useDataContext()
 
   console.log('USER ROLE:', user)
 
@@ -42,6 +45,9 @@ const Sidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={() => {
+                if (pathname === item.path) refreshAll()
+              }}
               className={({ isActive }) =>
                 `group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
                   isActive ? 'bg-blue-100 text-blue-700' : 'text-slate-700 hover:bg-blue-50 hover:text-slate-900'

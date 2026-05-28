@@ -20,10 +20,10 @@ export const PreCheckCard = ({ item, index }) => {
           {item.command}
         </div>
       )}
-      {item.expectedOutput && (
+      {(item.expected_output || item.expectedOutput) && (
         <div className="text-sm text-slate-600">
           <p className="mb-1 font-medium text-slate-700">Expected Output:</p>
-          <p className="text-slate-600">{item.expectedOutput}</p>
+          <p className="text-slate-600">{item.expected_output || item.expectedOutput}</p>
         </div>
       )}
     </div>

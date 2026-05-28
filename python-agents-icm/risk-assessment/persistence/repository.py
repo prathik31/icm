@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from persistence.db import (
@@ -12,6 +13,16 @@ from persistence.models import (
 
 
 class RiskRepository:
+
+    def _json_stringify(self, value):
+
+        if value is None:
+            return "[]"
+
+        if isinstance(value, str):
+            return value
+
+        return json.dumps(value)
 
     # =====================================================
     # SAVE FULL ASSESSMENT
@@ -67,7 +78,21 @@ class RiskRepository:
 
                 cab_guidance=assessment_response[
                     "cabGuidance"
-                ]
+                ],
+
+                recommendations=self._json_stringify(
+                    assessment_response.get(
+                        "recommendations",
+                        []
+                    )
+                ),
+
+                risk_indicators=self._json_stringify(
+                    assessment_response.get(
+                        "riskIndicators",
+                        []
+                    )
+                )
             )
 
             db.add(assessment)

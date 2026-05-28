@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchChangeRequests } from '../api/crApi'
+import { sortByLatest } from '../utils/sortByLatest'
 
 export default function RunbookOperations() {
 
@@ -12,8 +13,7 @@ export default function RunbookOperations() {
 
       try {
 
-        const data =
-          await fetchChangeRequests()
+        const data = await fetchChangeRequests()
 
         const filtered = data.filter(
 
@@ -22,7 +22,7 @@ export default function RunbookOperations() {
             cr.status === 'RUNBOOK_READY'
         )
 
-        setRequests(filtered)
+        setRequests(sortByLatest(filtered, ['updatedAt', 'createdAt']))
 
       } catch (err) {
 

@@ -1,4 +1,6 @@
-export default function RunbookHeader({ title, crId, generatedBy, riskLevel, blastRadius, duration }) {
+export default function RunbookHeader({ title, crId, generatedBy, riskLevel, blastRadius, duration, estimatedDurationMins }) {
+  const displayDuration = estimatedDurationMins ?? duration
+
   return (
     <div className="rounded-2xl bg-gradient-to-r from-slate-800 to-slate-700 p-6 text-white shadow-lg">
       <div className="flex items-start justify-between gap-6">
@@ -18,7 +20,7 @@ export default function RunbookHeader({ title, crId, generatedBy, riskLevel, bla
           </div>
           <div className="text-center rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
             <div className="text-xs">DURATION</div>
-            <div className="font-semibold">{duration} mins</div>
+            <div className="font-semibold">{displayDuration} mins</div>
           </div>
         </div>
       </div>

@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS generated_runbooks (
+  runbook_id VARCHAR(64) PRIMARY KEY,
+  cr_id VARCHAR(64) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  generated_at DATETIME NULL,
+  estimated_duration_mins INT NULL,
+  risk_level VARCHAR(50) NULL,
+  blast_radius VARCHAR(50) NULL,
+  risk_notes TEXT NULL,
+  pre_checks TEXT NULL,
+  execution_steps TEXT NULL,
+  validation_steps TEXT NULL,
+  rollback_steps TEXT NULL,
+  monitoring_guidance TEXT NULL,
+  escalation_conditions TEXT NULL,
+  rag_sources TEXT NULL,
+  generated_by VARCHAR(120) NULL,
+  created_at DATETIME NULL,
+  INDEX idx_generated_runbooks_cr_id (cr_id),
+  INDEX idx_generated_runbooks_generated_at (generated_at)
+);

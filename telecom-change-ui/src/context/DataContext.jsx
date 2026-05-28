@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 import * as crService from '../services/crService'
 import * as approvalService from '../services/approvalService'
+import { sortByLatest } from '../utils/sortByLatest'
 
 const DataContext = createContext(null)
 
@@ -14,37 +15,39 @@ export const DataProvider = ({ children }) => {
   const [errorRequests, setErrorRequests] = useState(null)
   const [errorApprovals, setErrorApprovals] = useState(null)
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     setLoadingRequests(true)
     setErrorRequests(null)
     try {
       const data = await crService.listChangeRequests()
-      setRequests(data || [])
-      return data || []
+      const sorted = sortByLatest(data || [], ['submittedAt', 'updatedAt'])
+      setRequests(sorted)
+      return sorted
     } catch (error) {
       setErrorRequests(error?.message || 'Unable to load change requests.')
       throw error
     } finally {
       setLoadingRequests(false)
     }
-  }
+  }, [])
 
-  const loadApprovals = async () => {
+  const loadApprovals = useCallback(async () => {
     setLoadingApprovals(true)
     setErrorApprovals(null)
     try {
       const data = await approvalService.listPendingApprovals()
-      setApprovals(data || [])
-      return data || []
+      const sorted = sortByLatest(data || [], ['updatedAt', 'updated', 'completedAt', 'createdAt'])
+      setApprovals(sorted)
+      return sorted
     } catch (error) {
       setErrorApprovals(error?.message || 'Unable to load approvals.')
       throw error
     } finally {
       setLoadingApprovals(false)
     }
-  }
+  }, [])
 
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     const tasksToRun = [loadRequests()]
     if (role === 'APPROVER' || role === 'ADMIN') {
       tasksToRun.push(loadApprovals())
@@ -56,11 +59,7 @@ export const DataProvider = ({ children }) => {
         console.warn(`[DataContext] ${label} failed`, result.reason)
       }
     })
-  }
-
-  useEffect(() => {
-    refreshAll()
-  }, [])
+  }, [loadApprovals, loadRequests, role])
 
   const contextValue = useMemo(
     () => ({
@@ -74,7 +73,7 @@ export const DataProvider = ({ children }) => {
       refreshApprovals: loadApprovals,
       refreshAll,
     }),
-    [requests, approvals, loadingRequests, loadingApprovals, errorRequests, errorApprovals],
+    [requests, approvals, loadingRequests, loadingApprovals, errorRequests, errorApprovals, loadRequests, loadApprovals, refreshAll],
   )
 
   return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>

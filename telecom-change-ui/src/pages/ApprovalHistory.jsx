@@ -3,6 +3,7 @@ import { listApprovalHistory } from '../services/approvalService'
 import Loader from '../components/Loader'
 import Table from '../components/ui/Table'
 import EmptyState from '../components/EmptyState'
+import { sortByLatest } from '../utils/sortByLatest'
 
 const ApprovalHistory = () => {
   const [history, setHistory] = useState([])
@@ -15,7 +16,7 @@ const ApprovalHistory = () => {
       setError(null)
       try {
         const data = await listApprovalHistory()
-        setHistory(data || [])
+        setHistory(sortByLatest(data || [], ['updatedAt', 'updated', 'completedAt', 'steps.0.decisionAt', 'createdAt']))
       } catch (err) {
         setError(err?.message || 'Unable to load approval history.')
       } finally {

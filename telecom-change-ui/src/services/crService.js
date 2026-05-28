@@ -38,15 +38,17 @@ const normalizeAssessment = (assessment) => {
 const normalizeRequest = (request) => {
   if (!request) return null
   const assessmentSource = request.assessment || request.riskAssessment || request.assessment_detail || request.risk || null
+  const normalizedAssessment = normalizeAssessment(assessmentSource)
   return {
     ...request,
     id: request.id || request.crId || request.changeRequestId || request.requestId || null,
     status: (request.status || request.approvalStatus || request.requestStatus || 'UNKNOWN').toUpperCase(),
-    assessment: normalizeAssessment(assessmentSource),
+    assessment: normalizedAssessment,
+    riskAssessment: normalizedAssessment,
     riskScore:
-      request.assessment?.riskScore ?? request.riskScore ?? request.risk_score ?? request.riskScore ?? null,
+      normalizedAssessment?.riskScore ?? request.riskScore ?? request.risk_score ?? request.riskScore ?? null,
     blastRadius:
-      request.assessment?.blastRadius ?? request.blastRadius ?? request.blast_radius ?? null,
+      normalizedAssessment?.blastRadius ?? request.blastRadius ?? request.blast_radius ?? null,
   }
 }
 
@@ -56,7 +58,8 @@ const logResponse = (label, data) => {
 
 export const listChangeRequests = async () => {
   try {
-    const data = await crApi.fetchChangeRequests()
+    const response = await crApi.fetchChangeRequests()
+    const data = response?.data?.data ?? response?.data ?? response ?? []
     const requests = Array.isArray(data) ? data.map(normalizeRequest) : []
     logResponse('listChangeRequests', requests)
     return requests

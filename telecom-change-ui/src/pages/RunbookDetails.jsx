@@ -1,13 +1,24 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getRunbookDetails } from '../services/runbookService'
+import { fetchRunbookDetails } from '../api/runbookApi'
 import Loader from '../components/Loader'
-import { PreCheckCard } from '../components/runbook/PreCheckCard'
-import { ExecutionStep } from '../components/runbook/ExecutionStep'
-import { ValidationCard } from '../components/runbook/ValidationCard'
-import { RollbackSection } from '../components/runbook/RollbackSection'
-import { MonitoringCard } from '../components/runbook/MonitoringCard'
-import { EscalationCard } from '../components/runbook/EscalationCard'
+
+const parseField = (field) => {
+  if (!field) return []
+
+  try {
+    let parsed = field
+
+    while (typeof parsed === 'string') {
+      parsed = JSON.parse(parsed)
+    }
+
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.error('parseField error', error)
+    return []
+  }
+}
 
 const RunbookDetails = () => {
   const { crId } = useParams()
@@ -28,8 +39,18 @@ const RunbookDetails = () => {
       setLoading(true)
       setError(null)
       try {
-        const data = await getRunbookDetails(crId)
-        setRunbook(data)
+        const data = await fetchRunbookDetails(crId)
+
+        setRunbook({
+          ...data,
+          preChecks: parseField(data.preChecks),
+          executionSteps: parseField(data.executionSteps),
+          validationSteps: parseField(data.validationSteps),
+          rollbackSteps: parseField(data.rollbackSteps),
+          monitoringGuidance: parseField(data.monitoringGuidance),
+          escalationConditions: parseField(data.escalationConditions),
+          ragSources: parseField(data.ragSources),
+        });
       } catch (err) {
         setError(err?.message || 'Unable to load runbook.')
       } finally {
@@ -79,6 +100,14 @@ const RunbookDetails = () => {
     }
   }
 
+  const preChecks = parseField(runbook?.preChecks)
+  const executionSteps = parseField(runbook?.executionSteps)
+  const validationSteps = parseField(runbook?.validationSteps)
+  const rollbackSteps = parseField(runbook?.rollbackSteps)
+  const monitoringGuidance = parseField(runbook?.monitoringGuidance)
+  const escalationConditions = parseField(runbook?.escalationConditions)
+  const estimatedDurationMins = runbook.estimatedDurationMins ?? runbook.duration ?? null
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -107,7 +136,7 @@ const RunbookDetails = () => {
           <div>
             <p className="text-xs uppercase text-slate-500">Duration</p>
             <p className="mt-1 text-lg font-semibold text-slate-900">
-              {runbook.duration ? `${runbook.duration} mins` : '—'}
+              {estimatedDurationMins ? `${estimatedDurationMins} mins` : '—'}
             </p>
           </div>
           <div>
@@ -123,141 +152,178 @@ const RunbookDetails = () => {
         </div>
       </div>
 
-      {/* Pre-Checks Section */}
-      {runbook.prechecks && runbook.prechecks.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <button
-            onClick={() => toggleSection('prechecks')}
-            className="flex w-full items-center justify-between p-6 hover:bg-slate-50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Pre-Checks</h2>
-            <span className={`transform text-slate-400 transition-transform ${expandedSections.prechecks ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-          {expandedSections.prechecks && (
-            <div className="border-t border-slate-200 px-6 py-4">
-              <div className="space-y-3">
-                {runbook.prechecks.map((check, idx) => (
-                  <PreCheckCard key={idx} item={check} index={idx} />
-                ))}
+      <div className="space-y-6 mt-6">
+        <div className="bg-white rounded-xl p-6 shadow">
+          <h2 className="text-xl font-bold mb-4">Pre Checks</h2>
+
+          {preChecks?.map((item, index) => (
+            <div
+              key={item.step_number || index}
+              className="border-b border-slate-200 py-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="font-bold text-blue-600">
+                  {item.step_number}.
+                </div>
+
+                <div className="flex-1">
+                  <p className="font-medium text-slate-900">
+                    {item.action}
+                  </p>
+
+                  <p className="text-green-600 mt-1">
+                    Expected: {item.expected_output}
+                  </p>
+
+                  <p className="text-slate-500 text-sm mt-1">
+                    {item.validation_checkpoint}
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+          ))}
         </div>
-      )}
 
-      {/* Execution Steps Section */}
-      {runbook.executionSteps && runbook.executionSteps.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <button
-            onClick={() => toggleSection('execution')}
-            className="flex w-full items-center justify-between p-6 hover:bg-slate-50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Execution Steps</h2>
-            <span className={`transform text-slate-400 transition-transform ${expandedSections.execution ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-          {expandedSections.execution && (
-            <div className="border-t border-slate-200 px-6 py-4">
-              <div className="space-y-2">
-                {runbook.executionSteps.map((step, idx) => (
-                  <ExecutionStep key={idx} step={step} index={idx} />
-                ))}
+        <div className="bg-white rounded-xl p-6 shadow mt-6">
+          <h2 className="text-xl font-bold mb-4">Execution Steps</h2>
+
+          {executionSteps?.length > 0 ? (
+            executionSteps.map((step, index) => (
+              <div
+                key={step.step_number || index}
+                className="border-b border-slate-200 py-4"
+              >
+                <h4 className="font-semibold">
+                  Step {step.step_number}
+                </h4>
+
+                <p>{step.action}</p>
+
+                <p className="text-green-600">
+                  Expected: {step.expected_output}
+                </p>
+
+                <p className="text-amber-600">
+                  Rollback: {step.rollback_action}
+                </p>
+
+                <p className="text-slate-500 text-sm">
+                  Timeout: {step.timeout_seconds}s
+                </p>
               </div>
-            </div>
+            ))
+          ) : (
+            <p>No execution steps available</p>
           )}
         </div>
-      )}
 
-      {/* Validation Steps Section */}
-      {runbook.validationSteps && runbook.validationSteps.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <button
-            onClick={() => toggleSection('validation')}
-            className="flex w-full items-center justify-between p-6 hover:bg-slate-50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Validation Steps</h2>
-            <span className={`transform text-slate-400 transition-transform ${expandedSections.validation ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-          {expandedSections.validation && (
-            <div className="border-t border-slate-200 px-6 py-4">
-              <div className="grid gap-3">
-                {runbook.validationSteps.map((step, idx) => (
-                  <ValidationCard key={idx} item={step} index={idx} />
-                ))}
+        <div className="bg-white rounded-xl p-6 shadow mt-6">
+          <h2 className="text-xl font-bold mb-4">Validation Steps</h2>
+
+          {validationSteps?.length > 0 ? (
+            validationSteps.map((step, index) => (
+              <div
+                key={step.step_number || index}
+                className="border-b border-slate-200 py-4"
+              >
+                <h4 className="font-semibold">
+                  Validation {step.step_number}
+                </h4>
+
+                <p>{step.action}</p>
+
+                <p className="text-green-600">
+                  Expected: {step.expected_output}
+                </p>
+
+                <p className="text-slate-500 text-sm">
+                  {step.validation_checkpoint}
+                </p>
               </div>
-            </div>
+            ))
+          ) : (
+            <p>No validation steps available</p>
           )}
         </div>
-      )}
 
-      {/* Rollback Plan Section */}
-      {runbook.rollbackPlan && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <button
-            onClick={() => toggleSection('rollback')}
-            className="flex w-full items-center justify-between p-6 hover:bg-slate-50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Rollback Plan</h2>
-            <span className={`transform text-slate-400 transition-transform ${expandedSections.rollback ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-          {expandedSections.rollback && (
-            <div className="border-t border-slate-200 px-6 py-4">
-              <RollbackSection rollbackPlan={runbook.rollbackPlan} />
+        <div className="bg-white rounded-xl p-6 shadow mt-6">
+          <h2 className="text-xl font-bold mb-4">Rollback Steps</h2>
+
+          {rollbackSteps?.map((item, index) => (
+            <div
+              key={item.step_number || index}
+              className="border-b border-slate-200 py-4"
+            >
+              <h4 className="font-semibold">
+                Rollback Step {item.step_number}
+              </h4>
+
+              <p>{item.action}</p>
+
+              <p className="text-green-600">
+                Expected: {item.expected_output}
+              </p>
+
+              <p className="text-slate-500 text-sm">
+                {item.validation_checkpoint}
+              </p>
+
             </div>
-          )}
+          ))}
         </div>
-      )}
 
-      {/* Monitoring Guidance Section */}
-      {runbook.monitoringGuidance && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <button
-            onClick={() => toggleSection('monitoring')}
-            className="flex w-full items-center justify-between p-6 hover:bg-slate-50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Monitoring Guidance</h2>
-            <span className={`transform text-slate-400 transition-transform ${expandedSections.monitoring ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-          {expandedSections.monitoring && (
-            <div className="border-t border-slate-200 px-6 py-4">
-              <MonitoringCard guidance={runbook.monitoringGuidance} />
-            </div>
-          )}
-        </div>
-      )}
+        <div className="bg-white rounded-xl p-6 shadow mt-6">
+          <h2 className="text-xl font-bold mb-4">Monitoring Guidance</h2>
 
-      {/* Escalation Conditions Section */}
-      {runbook.escalationConditions && runbook.escalationConditions.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <button
-            onClick={() => toggleSection('escalation')}
-            className="flex w-full items-center justify-between p-6 hover:bg-slate-50"
-          >
-            <h2 className="text-lg font-semibold text-slate-900">Escalation Conditions</h2>
-            <span className={`transform text-slate-400 transition-transform ${expandedSections.escalation ? 'rotate-180' : ''}`}>
-              ▼
-            </span>
-          </button>
-          {expandedSections.escalation && (
-            <div className="border-t border-slate-200 px-6 py-4">
-              <div className="grid gap-3">
-                {runbook.escalationConditions.map((condition, idx) => (
-                  <EscalationCard key={idx} condition={condition} index={idx} />
-                ))}
+          {monitoringGuidance?.length === 0 ? (
+            <p className="text-gray-500">
+              No monitoring guidance available
+            </p>
+          ) : (
+            monitoringGuidance?.map((item, index) => (
+              <div key={index} className="border-b py-4">
+
+                <p className="font-semibold">
+                  {item.monitoring_action || item.action || item.title}
+                </p>
+
+                <p>{item.monitoring_command || item.command}</p>
+
               </div>
-            </div>
+            ))
           )}
         </div>
-      )}
+
+        <div className="bg-white rounded-xl p-6 shadow mt-6">
+          <h2 className="text-xl font-bold mb-4">Escalation Conditions</h2>
+
+          {escalationConditions?.length === 0 ? (
+            <p className="text-gray-500">
+              No escalation conditions
+            </p>
+          ) : (
+            escalationConditions?.map((item, index) => (
+              <div key={index} className="border-b border-slate-200 py-4">
+
+                <p className="font-semibold text-red-600">
+                  Condition:
+                </p>
+
+                <p className="mb-2">
+                  {item.condition}
+                </p>
+
+                <p className="font-semibold">
+                  Action:
+                </p>
+
+                <p>{item.action}</p>
+
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   )
 }

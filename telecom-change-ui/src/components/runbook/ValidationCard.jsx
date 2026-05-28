@@ -7,8 +7,8 @@ export const ValidationCard = ({ item, index }) => {
         </span>
         <h4 className="font-semibold text-green-900">{item.action || item.title || 'Validation'}</h4>
       </div>
-      {item.description && (
-        <p className="mb-2 text-sm text-green-800">{item.description}</p>
+      {(item.action || item.description || item.title) && (
+        <p className="mb-2 text-sm text-green-800">{item.action || item.description || item.title}</p>
       )}
       {item.command && (
         <div className="mb-3 rounded bg-slate-900 p-3 font-mono text-xs text-slate-100">
@@ -16,10 +16,10 @@ export const ValidationCard = ({ item, index }) => {
           {item.command}
         </div>
       )}
-      {item.expectedOutput && (
+      {(item.expected_output || item.expectedOutput) && (
         <div className="text-sm">
           <p className="mb-1 font-medium text-green-900">Expected Result:</p>
-          <p className="text-green-800">{item.expectedOutput}</p>
+          <p className="text-green-800">{item.expected_output || item.expectedOutput}</p>
         </div>
       )}
     </div>

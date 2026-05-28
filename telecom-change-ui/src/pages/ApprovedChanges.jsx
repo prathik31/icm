@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchChangeRequests } from '../api/crApi'
 import { Link } from 'react-router-dom'
+import { sortByLatest } from '../utils/sortByLatest'
 
 export default function ApprovedChanges() {
 
@@ -13,8 +14,7 @@ export default function ApprovedChanges() {
 
       try {
 
-        const data =
-          await fetchChangeRequests()
+        const data = await fetchChangeRequests()
 
         const approved =
           data.filter(
@@ -22,7 +22,7 @@ export default function ApprovedChanges() {
               cr.status === 'APPROVED'
           )
 
-        setRequests(approved)
+        setRequests(sortByLatest(approved, ['submittedAt', 'updatedAt']))
 
       } catch (err) {
 
