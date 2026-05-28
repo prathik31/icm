@@ -56,10 +56,15 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // APPROVER APIs
+                        // APPROVER-only actions
                         .requestMatchers(
-                                "/v1/approvals/**"
-                        ).hasAuthority("APPROVER")
+                                HttpMethod.POST,
+                                "/v1/approvals/*/approve",
+                                "/v1/approvals/*/reject"
+                        ).hasAuthority("ROLE_APPROVER")
+
+                        // Authenticated approval endpoints for metadata and history
+                        .requestMatchers("/v1/approvals/**").authenticated()
 
                         // EVERYTHING ELSE
                         .anyRequest().authenticated()

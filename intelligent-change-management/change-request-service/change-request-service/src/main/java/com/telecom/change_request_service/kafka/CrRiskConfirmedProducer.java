@@ -20,6 +20,7 @@ public class CrRiskConfirmedProducer {
     private String topic;
 
     public void publishCrRiskConfirmed(CrRiskConfirmedEvent event) {
+        log.info("Publishing risk confirmed event: {}", event);
         kafkaTemplate.send(topic, event).whenComplete((result, ex) -> {
             if (ex != null) {
                 log.error("Failed to publish CR risk confirmed event: {}", event.getCrId(), ex);

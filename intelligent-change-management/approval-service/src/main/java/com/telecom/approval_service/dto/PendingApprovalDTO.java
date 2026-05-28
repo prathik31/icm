@@ -13,6 +13,6 @@ public class PendingApprovalDTO {
 	private String flowId;
 	private String crId;
 	private String riskLevel;
-	private Integer riskScore;
+	private Double riskScore;
 	private String status;
 }

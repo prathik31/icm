@@ -69,7 +69,7 @@ function App() {
 
               <Route element={<ProtectedRoute allowedRoles={['APPROVER', 'ADMIN']} />}>
                 <Route path="/approvals/pending" element={<ApprovalsPending />} />
-                <Route path="/approvals/:crId" element={<ApprovalDetails />} />
+                <Route path="/approvals/:flowId" element={<ApprovalDetails />} />
                 <Route path="/approvals/history" element={<ApprovalHistory />} />
               </Route>
 

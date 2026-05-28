@@ -44,21 +44,21 @@ public class ApprovalWorkflowService {
 			log.info("Approval flow already exists for CR {}, ignoring duplicate event", event.getCrId());
 		}, () -> {
 			ApprovalFlow flow = ApprovalFlow.builder().flowId(UUID.randomUUID().toString()).crId(event.getCrId())
-					.riskLevel(event.getRiskLevel()).riskScore(event.getRiskScore()).status("IN_PROGRESS")
+					.riskLevel(event.getRiskLevel()).riskScore(event.getRiskScore()).status("PENDING")
 					.createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 			approvalFlowRepository.save(flow);
-			log.info("Created approval flow {} for CR {}", flow.getFlowId(), event.getCrId());
+			log.info("Approval flow saved for CR: {}", event.getCrId());
 		});
 	}
 
 	public List<PendingApprovalDTO> getPendingApprovals() {
-		return approvalFlowRepository.findByStatus("IN_PROGRESS").stream().map(this::mapToPending)
+		return approvalFlowRepository.findByStatus("PENDING").stream().map(this::mapToPending)
 				.collect(Collectors.toList());
 	}
 
-	public ApprovalDetailsDTO getApprovalDetails(String crId) {
-		ApprovalFlow flow = approvalFlowRepository.findByCrId(crId)
-				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found for CR: " + crId));
+	public ApprovalDetailsDTO getApprovalDetails(String flowId) {
+		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
+				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found for Flow ID: " + flowId));
 		return mapToDetails(flow);
 	}
 
@@ -83,8 +83,8 @@ public class ApprovalWorkflowService {
 		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
 				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found: " + flowId));
 
-		if (!"IN_PROGRESS".equals(flow.getStatus())) {
-			throw new RuntimeException("Only IN_PROGRESS approvals can be approved");
+		if (!"PENDING".equals(flow.getStatus())) {
+			throw new RuntimeException("Only PENDING approvals can be approved");
 		}
 
 		flow.setStatus("APPROVED");
@@ -111,8 +111,8 @@ public class ApprovalWorkflowService {
 		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
 				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found: " + flowId));
 
-		if (!"IN_PROGRESS".equals(flow.getStatus())) {
-			throw new RuntimeException("Only IN_PROGRESS approvals can be rejected");
+		if (!"PENDING".equals(flow.getStatus())) {
+			throw new RuntimeException("Only PENDING approvals can be rejected");
 		}
 
 		flow.setStatus("REJECTED");

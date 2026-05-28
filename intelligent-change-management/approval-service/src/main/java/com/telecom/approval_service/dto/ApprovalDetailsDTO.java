@@ -15,7 +15,7 @@ public class ApprovalDetailsDTO {
 	private String flowId;
 	private String crId;
 	private String riskLevel;
-	private Integer riskScore;
+	private Double riskScore;
 	private String status;
 	private List<ApprovalStepDTO> steps;
 }

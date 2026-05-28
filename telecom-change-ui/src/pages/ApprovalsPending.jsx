@@ -106,7 +106,7 @@ const ApprovalsPending = () => {
             const requestId = approval.changeRequestId || approval.crId || '—'
             const risk = approval.assessment?.riskLevel || approval.riskRating || approval.riskLevel || 'UNKNOWN'
             return (
-              <tr key={approval.flowId || approval.id || requestId} className="hover:bg-slate-50">
+              <tr key={approval.flowId || requestId} className="hover:bg-slate-50">
                 <td className="px-6 py-4 text-slate-900">{requestId}</td>
                 <td className="px-6 py-4"><RiskBadge level={risk} /></td>
                 <td className="px-6 py-4 text-slate-700">{approval.confidence ? `${approval.confidence}%` : '—'}</td>
@@ -114,7 +114,7 @@ const ApprovalsPending = () => {
                 <td className="px-6 py-4"><StatusBadge status={approval.status || 'PENDING'} /></td>
                 <td className="px-6 py-4">
                   <Link
-                    to={`/approvals/${requestId}`}
+                    to={`/approvals/${approval.flowId}`}
                     className="inline-flex rounded-2xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
                   >
                     Review

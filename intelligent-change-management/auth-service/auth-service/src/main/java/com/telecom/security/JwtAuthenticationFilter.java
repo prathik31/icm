@@ -48,12 +48,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Once we get the token validate it.
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (jwtUtil.validateToken(jwtToken, username)) {
+                String normalizedAuthority = role != null && role.startsWith("ROLE_") ? role : "ROLE_" + role;
                 // Create authentication object
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(
                                 userId, // principal
                                 null, // credentials
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role)) // authorities
+                                List.of(new SimpleGrantedAuthority(normalizedAuthority)) // authorities
                         );
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 

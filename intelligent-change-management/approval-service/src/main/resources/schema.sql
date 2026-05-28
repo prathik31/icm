@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS approval_flow (
   flow_id VARCHAR(36) NOT NULL UNIQUE,
   cr_id VARCHAR(36) NOT NULL,
   risk_level VARCHAR(100),
-  risk_score INT,
+  risk_score DOUBLE,
   status VARCHAR(50) NOT NULL,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,

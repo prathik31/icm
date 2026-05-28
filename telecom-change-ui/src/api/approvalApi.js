@@ -6,8 +6,8 @@ export const fetchPendingApprovals = async () => {
   return response.data
 }
 
-export const fetchApprovalDetails = async (crId) => {
-  const response = await axiosClient.get(`${APPROVAL_API}/v1/approvals/${crId}`)
+export const fetchApprovalDetails = async (flowId) => {
+  const response = await axiosClient.get(`${APPROVAL_API}/v1/approvals/${flowId}`)
   return response.data
 }
 

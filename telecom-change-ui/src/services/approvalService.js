@@ -49,7 +49,6 @@ const normalizeApproval = (approval) => {
 
   return {
     ...approval,
-    id: approval.flowId || approval.id || null,
     crId: approval.crId || changeRequestId || null,
     changeRequestId,
     status: (approval.status || approval.state || 'PENDING').toUpperCase(),
@@ -83,9 +82,9 @@ export const listPendingApprovals = async () => {
   }
 }
 
-export const getApprovalDetails = async (crId) => {
+export const getApprovalDetails = async (flowId) => {
   try {
-    const data = await approvalApi.fetchApprovalDetails(crId)
+    const data = await approvalApi.fetchApprovalDetails(flowId)
     const approval = normalizeApproval(data)
     logResponse('getApprovalDetails', approval)
     return approval

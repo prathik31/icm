@@ -1,6 +1,7 @@
 package com.telecom.approval_service.kafka.consumer;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -16,13 +17,24 @@ import lombok.extern.slf4j.Slf4j;
 public class ApprovalEventConsumer {
 
 	private final ApprovalWorkflowService approvalWorkflowService;
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	@Value("${app.kafka.cr-risk-confirmed-topic:cr.risk_confirmed}")
-	private String riskConfirmedTopic;
+	@PostConstruct
+	public void init() {
+		log.info("Approval consumer initialized");
+		log.info("Listening topic: cr.risk_confirmed");
+	}
 
 	@KafkaListener(topics = "#{'${app.kafka.cr-risk-confirmed-topic:cr.risk_confirmed}'}", groupId = "approval-group-v2")
-	public void consume(CrRiskConfirmedEvent event) {
-		log.info("Received {} event for CR {}", riskConfirmedTopic, event.getCrId());
-		approvalWorkflowService.handleRiskConfirmedEvent(event);
+	public void consume(String rawMessage) {
+		log.info("RAW MESSAGE RECEIVED: {}", rawMessage);
+		try {
+			CrRiskConfirmedEvent event = objectMapper.readValue(rawMessage, CrRiskConfirmedEvent.class);
+			log.info("Parsed risk confirmed event: {}", event);
+			approvalWorkflowService.handleRiskConfirmedEvent(event);
+			log.info("Approval flow processed for CR: {}", event.getCrId());
+		} catch (Exception e) {
+			log.error("Kafka consume failed", e);
+		}
 	}
 }

@@ -2,9 +2,9 @@ spring:
   application:
     name: approval-service
   datasource:
-    url: jdbc:mysql://localhost:3306/icm_db
+    url: jdbc:mysql://localhost:3306/icm
     username: root
-    password: Contract@1968
+    password: Prtk_14rnk
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -28,9 +28,9 @@ spring:
         spring.json.type.mapping: approvalDecisionEvent:com.telecom.approval_service.kafka.event.ApprovalDecisionEvent
     consumer:
       group-id: approval-group-v2
-      auto-offset-reset: latest
+      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         spring.json.trusted.packages: "*"
         spring.json.use.type.headers: false

@@ -5,9 +5,9 @@ spring:
     serialization:
       write-dates-as-timestamps: false
   datasource:
-    url: jdbc:mysql://localhost:3306/icm_db
+    url: jdbc:mysql://localhost:3306/icm
     username: root
-    password: Contract@1968
+    password: Prtk_14rnk
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

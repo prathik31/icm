@@ -4,11 +4,11 @@ spring:
       change-request-service
   datasource:
     url:
-      jdbc:mysql://localhost:3306/icm_db
+      jdbc:mysql://localhost:3306/icm
     username:
       root
     password:
-      Contract@1968
+      Prtk_14rnk
   jpa:
     hibernate:
       ddl-auto:

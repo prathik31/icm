@@ -12,7 +12,7 @@ import Card from '../components/ui/Card'
 import Timeline from '../components/Timeline'
 
 const ApprovalDetails = () => {
-  const { crId } = useParams()
+  const { flowId } = useParams()
   const navigate = useNavigate()
   const [approval, setApproval] = useState(null)
   const [request, setRequest] = useState(null)
@@ -26,6 +26,10 @@ const ApprovalDetails = () => {
   const { refreshAll } = useDataContext()
 
   const loadApproval = async () => {
+    if (!flowId) {
+      return
+    }
+
     setLoading(true)
     setLoadingAssessment(true)
     setMessage(null)
@@ -33,13 +37,22 @@ const ApprovalDetails = () => {
 
     let approvalData = null
     try {
-      approvalData = await getApprovalDetails(crId)
+      console.log("Opening approval flow:", flowId)
+      approvalData = await getApprovalDetails(flowId)
       setApproval(approvalData)
     } catch (err) {
       setMessage(err?.message || 'Unable to load approval details.')
     }
 
     try {
+      const crId = approvalData?.crId
+      if (!crId) {
+        console.warn('[ApprovalDetails] CR ID not available from approval flow')
+        setLoading(false)
+        setLoadingAssessment(false)
+        return
+      }
+
       const [crResult, assessmentResult] = await Promise.allSettled([
         getChangeRequestById(crId),
         getAssessment(crId),
@@ -72,15 +85,16 @@ const ApprovalDetails = () => {
   }
 
   useEffect(() => {
+    if (!flowId) return
     loadApproval()
-  }, [crId])
+  }, [flowId])
 
   const handleAction = async (mode) => {
-    if (!approval) return
+    if (!approval?.flowId) return
     setActionLoading(true)
     setMessage(null)
     try {
-      const flowId = approval.flowId || approval.id
+      const flowId = approval.flowId
       if (mode === 'approve') {
         await approveFlow(flowId, comment)
       } else {
@@ -118,6 +132,14 @@ const ApprovalDetails = () => {
       { title: 'Review readiness', description: request?.riskRating ? `Risk rating is ${request.riskRating}` : 'Risk information is being evaluated.', date: approval?.updatedAt, variant: request?.riskRating },
     ].filter((item) => item.date)
   }, [approval, request])
+
+  if (!flowId) {
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-slate-700 shadow-sm">
+        <p className="text-sm">Invalid approval flow ID</p>
+      </div>
+    )
+  }
 
   if (loading) return <Loader />
 

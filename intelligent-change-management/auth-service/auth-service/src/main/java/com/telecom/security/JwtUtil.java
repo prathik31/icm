@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -26,10 +27,13 @@ public class JwtUtil {
     }
 
     public String generateToken(String userId, String email, String role) {
+        String normalizedRole = role == null ? "ROLE_USER" : role.startsWith("ROLE_") ? role : "ROLE_" + role;
+
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("email", email);
-        claims.put("role", role);
+        claims.put("role", normalizedRole);
+        claims.put("authorities", List.of(normalizedRole));
 
         return Jwts.builder()
                 .setClaims(claims)

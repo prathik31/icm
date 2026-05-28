@@ -19,7 +19,7 @@ const ApprovalCard = ({ approval }) => {
 
         <div className="mt-2">
           <Link
-            to={`/approvals/${approval.crId}`}
+            to={`/approvals/${approval.flowId}`}
             className="inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
           >
             View approval

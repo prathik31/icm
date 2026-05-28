@@ -34,7 +34,7 @@ public class ApprovalFlow {
 	@Column(length = 100)
 	private String riskLevel;
 
-	private Integer riskScore;
+	private Double riskScore;
 
 	@Column(nullable = false, length = 50)
 	private String status;
