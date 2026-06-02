@@ -10,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
@@ -31,18 +32,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String userId = null;
         String role = null;
 
-        // JWT Token is in the form "Bearer token". Remove Bearer word and get only the Token
-        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
-            jwtToken = requestTokenHeader.substring(7);
-            try {
-                username = jwtUtil.extractUsername(jwtToken);
-                userId = jwtUtil.extractUserId(jwtToken);
-                role = jwtUtil.extractRole(jwtToken);
-            } catch (Exception e) {
-                logger.warn("Unable to get JWT Token or JWT Token has expired");
+        if (StringUtils.hasText(requestTokenHeader)) {
+            String header = requestTokenHeader.trim();
+            if (header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                jwtToken = header.substring(7).trim();
+                try {
+                    username = jwtUtil.extractUsername(jwtToken);
+                    userId = jwtUtil.extractUserId(jwtToken);
+                    role = jwtUtil.extractRole(jwtToken);
+                } catch (Exception e) {
+                    logger.warn("Unable to get JWT Token or JWT Token has expired", e);
+                }
+            } else {
+                logger.warn("Authorization header provided but does not begin with Bearer String");
             }
-        } else {
-            logger.warn("JWT Token does not begin with Bearer String");
         }
 
         // Once we get the token validate it.

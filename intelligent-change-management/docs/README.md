@@ -421,7 +421,7 @@ POST /v1/runbooks/generate/{crId}
 - name
 - email (UNIQUE)
 - passwordHash
-- role (ENGINEER, APPROVER, ADMIN)
+- role (ENGINEER, APPROVER, ADMIN, TECHNICIAN)
 - isActive
 - createdAt
 - updatedAt
@@ -631,13 +631,13 @@ All service endpoints (except health checks) require JWT authentication.
 - **Algorithm:** HS256
 - **Secret:** Configured in application properties
 - **Expiration:** 24 hours (86400000 ms)
-- **Role mapping:** ENGINEER, APPROVER, ADMIN
+- **Role mapping:** ENGINEER, APPROVER, ADMIN, TECHNICIAN
 
 ### Role-Based Endpoint Access
 
-| Endpoint | ENGINEER | APPROVER | ADMIN |
-|----------|----------|----------|-------|
-| POST /v1/change-requests | ✅ | ❌ | ✅ |
+| Endpoint | ENGINEER | APPROVER | ADMIN | TECHNICIAN |
+|----------|----------|----------|-------|------------|
+| POST /v1/change-requests | ✅ | ❌ | ✅ | ❌ |
 | POST /v1/change-requests/{id}/submit | ✅ | ❌ | ✅ |
 | POST /v1/change-requests/{id}/confirm-risk | ✅ | ❌ | ✅ |
 | GET /v1/approvals/pending | ❌ | ✅ | ✅ |

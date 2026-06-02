@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: technician-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/icm_technician_db?createDatabaseIfNotExist=true&serverTimezone=UTC&useSSL=false
+    username: root
+    password: Prtk_14rnk
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+  sql:
+    init:
+      mode: always
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 9006
+
+jwt:
+  secret: mySecretKey1234567890123456789012345678901234567890
+  expiration: 86400000
+
+external:
+  change-request-service:
+    url: ${CHANGE_REQUEST_SERVICE_URL:http://localhost:9002}
+  runbook-service:
+    url: ${RUNBOOK_SERVICE_URL:http://localhost:9004}

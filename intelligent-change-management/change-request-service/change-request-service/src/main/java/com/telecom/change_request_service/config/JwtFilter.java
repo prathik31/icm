@@ -28,10 +28,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
             if (jwtUtil.validateToken(token)) {
                 String userId = jwtUtil.extractUserId(token);
-                String role = jwtUtil.extractRole(token);
+                String roleClaim = jwtUtil.extractRole(token);
+                String normalizedRole = roleClaim != null && roleClaim.startsWith("ROLE_") ? roleClaim.substring(5) : roleClaim;
 
                 request.setAttribute("userId", userId);
-                request.setAttribute("role", role);
+                request.setAttribute("role", normalizedRole);
             }
         }
 

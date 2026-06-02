@@ -29,7 +29,7 @@ This document provides a complete reference for all REST API endpoints across al
 - All other services require JWT token returned by login/register
 - Token format: `Authorization: Bearer <token>`
 - Expiration: 24 hours
-- Roles: `ENGINEER`, `APPROVER`, `ADMIN`
+- Roles: `ENGINEER`, `APPROVER`, `ADMIN`, `TECHNICIAN`
 
 ### POST /auth/register
 

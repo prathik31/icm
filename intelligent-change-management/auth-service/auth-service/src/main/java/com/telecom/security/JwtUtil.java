@@ -32,7 +32,7 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("email", email);
-        claims.put("role", normalizedRole);
+        claims.put("role", role);
         claims.put("authorities", List.of(normalizedRole));
 
         return Jwts.builder()

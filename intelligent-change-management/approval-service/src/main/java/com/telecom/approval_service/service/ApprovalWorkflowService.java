@@ -52,18 +52,19 @@ public class ApprovalWorkflowService {
 	}
 
 	public List<PendingApprovalDTO> getPendingApprovals() {
-		return approvalFlowRepository.findByStatus("PENDING").stream().map(this::mapToPending)
+		return approvalFlowRepository.findByStatusIn(List.of("PENDING", "IN_PROGRESS")).stream().map(this::mapToPending)
 				.collect(Collectors.toList());
 	}
 
-	public ApprovalDetailsDTO getApprovalDetails(String flowId) {
-		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
-				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found for Flow ID: " + flowId));
+	public ApprovalDetailsDTO getApprovalDetails(String flowOrCrId) {
+		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowOrCrId)
+				.or(() -> approvalFlowRepository.findByCrId(flowOrCrId))
+				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found for ID: " + flowOrCrId));
 		return mapToDetails(flow);
 	}
 
 	public List<ApprovalDetailsDTO> getApprovalHistory() {
-		return approvalFlowRepository.findByStatus("APPROVED").stream().map(flow -> {
+		return approvalFlowRepository.findByStatusIn(List.of("APPROVED", "REJECTED")).stream().map(flow -> {
 			ApprovalFlow hydratedFlow = flow;
 			ApprovalDecision latestDecision = approvalDecisionRepository.findTopByFlowIdOrderByDecisionAtDesc(flow.getFlowId()).orElse(null);
 			ApprovalDetailsDTO details = mapToDetails(hydratedFlow);

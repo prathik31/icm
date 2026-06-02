@@ -15,4 +15,6 @@ public interface ApprovalFlowRepository extends JpaRepository<ApprovalFlow, Long
 	Optional<ApprovalFlow> findByFlowId(String flowId);
 
 	List<ApprovalFlow> findByStatus(String status);
+
+	List<ApprovalFlow> findByStatusIn(List<String> statuses);
 }

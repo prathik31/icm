@@ -47,6 +47,6 @@ public class User {
     }
 
     public enum Role {
-        ENGINEER, APPROVER, ADMIN
+        ENGINEER, APPROVER, ADMIN, TECHNICIAN
     }
 }
