@@ -10,12 +10,11 @@ const computeTotals = (requests, approvals) => {
 
   return {
     total: requests.length,
-    submitted: statusCounts.SUBMITTED || 0,
     analyzed: statusCounts.ANALYZED || 0,
     confirmed: statusCounts.RISK_CONFIRMED || 0,
     approved: statusCounts.APPROVED || 0,
     rejected: statusCounts.REJECTED || 0,
-    pendingApprovals: approvals.length,
+    pendingApprovals: statusCounts.RISK_CONFIRMED || 0,
   }
 }
 

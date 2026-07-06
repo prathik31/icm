@@ -12,18 +12,12 @@ const ApprovalsPending = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
 
-  const mapAssessmentToApproval = (a) => ({
-    riskRating: a.riskLevel || a.risk_level || a.riskRating,
-    confidence: a.confidence ?? null,
-    blastRadius: a.blastRadius || a.blast_radius || null,
-  })
-
   const statusOptions = useMemo(() => ['ALL', ...new Set(approvals.map((item) => (item.status || 'PENDING').toUpperCase()))], [approvals])
 
   const filteredApprovals = useMemo(() => {
     return approvals
       .filter((approval) => {
-        const text = `${approval.changeRequestId || approval.crId || ''} ${approval.status || ''} ${approval.riskRating || approval.riskLevel || ''}`.toLowerCase()
+        const text = `${approval.changeRequestId || approval.crId || ''} ${approval.title || ''} ${approval.region || ''} ${approval.status || ''} ${approval.riskLevel || ''}`.toLowerCase()
         return text.includes(searchTerm.toLowerCase())
       })
       .filter((approval) => {
@@ -53,7 +47,7 @@ const ApprovalsPending = () => {
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search by CR ID or risk"
+            placeholder="Search by CR ID, title, region, or risk"
             className="mt-2 w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           />
         </label>
@@ -95,22 +89,24 @@ const ApprovalsPending = () => {
         <Table
           columns={[
             { key: 'crId', title: 'CR ID' },
+            { key: 'title', title: 'Title' },
+            { key: 'region', title: 'Region' },
             { key: 'risk', title: 'Risk' },
-            { key: 'confidence', title: 'Confidence' },
-            { key: 'blastRadius', title: 'Blast radius' },
             { key: 'status', title: 'Status' },
             { key: 'action', title: '' },
           ]}
           rows={filteredApprovals}
           renderRow={(approval) => {
             const requestId = approval.changeRequestId || approval.crId || '—'
+            const title = approval.title || approval.changeRequestTitle || '—'
+            const region = approval.region || approval.location || '—'
             const risk = approval.assessment?.riskLevel || approval.riskRating || approval.riskLevel || 'UNKNOWN'
             return (
               <tr key={approval.flowId || requestId} className="hover:bg-slate-50">
                 <td className="px-6 py-4 text-slate-900">{requestId}</td>
+                <td className="px-6 py-4 text-slate-900">{title}</td>
+                <td className="px-6 py-4 text-slate-700">{region}</td>
                 <td className="px-6 py-4"><RiskBadge level={risk} /></td>
-                <td className="px-6 py-4 text-slate-700">{approval.confidence ? `${approval.confidence}%` : '—'}</td>
-                <td className="px-6 py-4 text-slate-700">{approval.blastRadius || '—'}</td>
                 <td className="px-6 py-4"><StatusBadge status={approval.status || 'PENDING'} /></td>
                 <td className="px-6 py-4">
                   <Link

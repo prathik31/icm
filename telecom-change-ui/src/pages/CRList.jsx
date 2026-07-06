@@ -105,24 +105,19 @@ const CRList = () => {
             { key: 'id', title: 'CR ID' },
             { key: 'title', title: 'Title' },
             { key: 'status', title: 'Status' },
-            { key: 'risk', title: 'Risk Level' },
-            { key: 'riskScore', title: 'Risk Score' },
             { key: 'region', title: 'Region' },
             { key: 'createdAt', title: 'Created' },
-            { key: 'actions', title: 'Actions' },
+            { key: 'actions', title: 'Action' },
           ]}
           rows={filteredRequests}
           renderRow={(request) => {
             const requestId = request.id || request.crId
             const status = (request.status || request.approvalStatus || 'UNKNOWN').toUpperCase()
-            const risk = request.assessment?.riskLevel || request.riskRating || request.riskLevel || request.risk || 'UNKNOWN'
             return (
               <tr key={requestId} className="hover:bg-slate-50">
                 <td className="px-6 py-4 text-slate-900">{requestId}</td>
                 <td className="px-6 py-4 text-slate-900">{request.title || 'Untitled request'}</td>
                 <td className="px-6 py-4"><StatusBadge status={status} /></td>
-                <td className="px-6 py-4"><RiskBadge level={risk} /></td>
-                <td className="px-6 py-4 text-slate-700">{request.riskScore ?? '—'}</td>
                 <td className="px-6 py-4 text-slate-700">{request.region || '—'}</td>
                 <td className="px-6 py-4 text-slate-600">{new Date(request.createdAt || request.updatedAt || '').toLocaleDateString() || '—'}</td>
                 <td className="px-6 py-4">

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import TechnicianDashboard from './technician/TechnicianDashboard'
 import { useDashboard } from '../hooks/useDashboard'
 import Card from '../components/ui/Card'
 import StatusBadge from '../components/StatusBadge'
@@ -13,6 +14,11 @@ const statPlaceholder = (
 
 const Dashboard = () => {
   const { role } = useAuth()
+
+  if (role === 'TECHNICIAN') {
+    return <TechnicianDashboard />
+  }
+
   const {
     requests,
     approvals,
@@ -90,7 +96,7 @@ const Dashboard = () => {
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-sm text-slate-500">Pending approvals</p>
               <div className="mt-3 text-3xl font-semibold text-slate-900">
-                {loadingApprovals ? statPlaceholder : totals.pendingApprovals}
+                {loadingRequests ? statPlaceholder : totals.pendingApprovals}
               </div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -107,7 +113,7 @@ const Dashboard = () => {
             {(role === 'ENGINEER' || role === 'ADMIN') && (
               <div className="rounded-3xl border border-slate-200 bg-white p-4">
                 <p className="font-semibold text-slate-900">Engineer workflow</p>
-                <p className="mt-2 leading-6">Create, submit, and confirm risk for change requests before they enter the approval queue.</p>
+                <p className="mt-2 leading-6">Create, submit, and analyze change requests before they enter the approval queue.</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link to="/cr/create" className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
                     Create CR
@@ -137,18 +143,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Submitted</p>
-              <div className="mt-2 text-3xl font-semibold text-slate-900">
-                {loadingRequests ? statPlaceholder : totals.submitted}
-              </div>
-            </div>
-            <div className="rounded-3xl bg-sky-100 px-3 py-2 text-sm font-semibold text-sky-700">Live</div>
-          </div>
-        </div>
+      <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>

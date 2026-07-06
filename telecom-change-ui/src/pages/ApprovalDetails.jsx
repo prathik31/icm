@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { approveFlow, getApprovalDetails, rejectFlow } from '../services/approvalService'
 import { getAssessment, getChangeRequestById } from '../services/crService'
+import { getTechnicianList, assignTechnician } from '../services/technicianService'
 import { useDataContext } from '../context/DataContext'
 import Loader from '../components/Loader'
 import AlertMessage from '../components/AlertMessage'
@@ -10,6 +11,7 @@ import RiskBadge from '../components/RiskBadge'
 import RiskAssessmentCard from '../components/risk/RiskAssessmentCard'
 import Card from '../components/ui/Card'
 import Timeline from '../components/Timeline'
+import TechnicianAssignmentModal from '../components/TechnicianAssignmentModal'
 
 const ApprovalDetails = () => {
   const { flowId } = useParams()
@@ -22,6 +24,11 @@ const ApprovalDetails = () => {
   const [loading, setLoading] = useState(true)
   const [loadingAssessment, setLoadingAssessment] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [technicians, setTechnicians] = useState([])
+  const [selectedTechnicianId, setSelectedTechnicianId] = useState(null)
+  const [assignLoading, setAssignLoading] = useState(false)
+  const [assignmentError, setAssignmentError] = useState(null)
   const [message, setMessage] = useState(null)
   const { refreshAll } = useDataContext()
 
@@ -84,6 +91,17 @@ const ApprovalDetails = () => {
     }
   }
 
+  const loadTechnicians = async () => {
+    setAssignmentError(null)
+    try {
+      const techs = await getTechnicianList()
+      setTechnicians(techs)
+      setSelectedTechnicianId(techs?.[0]?.id || null)
+    } catch (err) {
+      setAssignmentError(err?.message || 'Unable to load available technicians.')
+    }
+  }
+
   useEffect(() => {
     if (!flowId) return
     loadApproval()
@@ -97,15 +115,42 @@ const ApprovalDetails = () => {
       const flowId = approval.flowId
       if (mode === 'approve') {
         await approveFlow(flowId, comment)
+        setShowAssignmentModal(true)
+        loadTechnicians()
       } else {
         await rejectFlow(flowId, comment)
+        await refreshAll()
+        navigate('/approvals/history')
       }
-      await refreshAll()
-      navigate('/approvals/history')
     } catch (err) {
       setMessage(err?.message || 'Unable to complete approval action.')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  const handleCancelAssignment = () => {
+    setShowAssignmentModal(false)
+    navigate('/approvals/history')
+  }
+
+  const handleAssignTechnician = async () => {
+    if (!approval?.crId || !selectedTechnicianId) {
+      setAssignmentError('Please select a technician to assign.')
+      return
+    }
+
+    setAssignLoading(true)
+    setAssignmentError(null)
+    try {
+      await assignTechnician(approval.crId, selectedTechnicianId)
+      await refreshAll()
+      setShowAssignmentModal(false)
+      navigate('/approvals/history')
+    } catch (err) {
+      setAssignmentError(err?.message || 'Unable to assign technician.')
+    } finally {
+      setAssignLoading(false)
     }
   }
 
@@ -290,6 +335,19 @@ const ApprovalDetails = () => {
           {actionLoading ? 'Processing…' : 'Reject'}
         </button>
       </div>
+
+      <TechnicianAssignmentModal
+        isOpen={showAssignmentModal}
+        technicians={technicians}
+        selectedTechnicianId={selectedTechnicianId}
+        onSelect={setSelectedTechnicianId}
+        onAssign={handleAssignTechnician}
+        onCancel={handleCancelAssignment}
+        loading={assignLoading}
+        error={assignmentError}
+        crRegion={requestData.region || approval?.region}
+        crSpecialization={requestData.domain || requestData.changeType || requestData.type || ''}
+      />
 
       <button
         type="button"

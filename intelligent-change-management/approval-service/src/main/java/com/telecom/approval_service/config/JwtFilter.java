@@ -34,6 +34,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
 			if (jwtUtil.validateToken(token)) {
 				String userId = jwtUtil.extractUserId(token);
+				String email = jwtUtil.extractEmail(token);
 				String roleClaim = jwtUtil.extractRole(token);
 				String normalizedAuthority = roleClaim != null && roleClaim.startsWith("ROLE_") ? roleClaim : "ROLE_" + roleClaim;
 				List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(normalizedAuthority));
@@ -43,6 +44,7 @@ public class JwtFilter extends OncePerRequestFilter {
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 
 				request.setAttribute("userId", userId);
+				request.setAttribute("email", email);
 				Object authRole = roleClaim != null && roleClaim.startsWith("ROLE_") ? roleClaim.substring(5) : roleClaim;
 				request.setAttribute("role", authRole);
 

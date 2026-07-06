@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { confirmRisk, getAssessment, getChangeRequestById, submitChangeRequest } from '../services/crService'
 import { useDataContext } from '../context/DataContext'
@@ -22,16 +22,27 @@ const CRDetails = () => {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const pollingRef = useRef(null)
+  const isFetchingRef = useRef(false)
   const { refreshAll } = useDataContext()
 
-  const loadRequest = async () => {
-    setLoading(true)
+  const loadRequest = useCallback(async (options = {}) => {
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
+
+    const showLoading = options.showLoading ?? !request
+    if (showLoading) {
+      setLoading(true)
+    }
+
     setMessage(null)
     setAssessmentError(null)
+
     try {
       const data = await getChangeRequestById(id)
       setRequest(data)
       setLoadingAssessment(true)
+
       try {
         const a = await getAssessment(id)
         console.log('Assessment response:', a)
@@ -48,15 +59,41 @@ const CRDetails = () => {
     } catch (err) {
       setMessage(err?.message || 'Unable to load change request.')
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
+      isFetchingRef.current = false
     }
-  }
+  }, [id, request])
 
   useEffect(() => {
     if (id) {
       loadRequest()
     }
-  }, [id])
+  }, [id, loadRequest])
+
+  useEffect(() => {
+    const pollingStatuses = ['DRAFT', 'SUBMITTED', 'PROCESSING']
+    const shouldPoll = request && pollingStatuses.includes(request.status)
+
+    if (shouldPoll && !pollingRef.current) {
+      pollingRef.current = window.setInterval(() => {
+        loadRequest({ showLoading: false })
+      }, 3000)
+    }
+
+    if (!shouldPoll && pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [request, loadRequest])
 
   const handleSubmit = async () => {
     setActionLoading(true)
@@ -95,7 +132,6 @@ const CRDetails = () => {
       { title: 'Request created', description: request?.description || 'Initial request submitted', date: request?.createdAt, variant: 'Created' },
       { title: 'Submitted for assessment', description: 'Request entered the risk analysis queue.', date: request?.submittedAt, variant: 'Submitted' },
       { title: 'Risk analysis completed', description: 'AI risk engine evaluated the change request.', date: request?.analyzedAt || request?.analysisCompletedAt, variant: 'Analyzed' },
-      { title: 'Risk confirmed', description: 'Risk profile confirmed and ready for approval.', date: request?.riskConfirmedAt, variant: 'Confirmed' },
       { title: 'Final decision', description: 'Approval or rejection has been recorded.', date: request?.approvedAt || request?.rejectedAt, variant: request?.approvedAt ? 'Approved' : request?.rejectedAt ? 'Rejected' : undefined },
     ].filter((event) => event.date)
   }, [request])
@@ -111,7 +147,7 @@ const CRDetails = () => {
   }
 
   const canSubmit = request.status === 'DRAFT'
-  const canConfirmRisk = ['ENGINEER', 'ADMIN'].includes(role) && request.status === 'ANALYZED'
+  const canConfirmRisk = ['ENGINEER','ADMIN'].includes(role) && request.status === 'ANALYZED'
 
   return (
     <div className="space-y-6">
@@ -121,11 +157,24 @@ const CRDetails = () => {
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={request.status || 'UNKNOWN'} />
             {riskRating && <RiskBadge level={riskRating} />}
+            <button
+              type="button"
+              onClick={() => navigate(`/cr/${id}/risk`)}
+              className="ml-2 inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
+            >
+              View risk
+            </button>
           </div>
         }
       >
         <p className="mt-1 text-sm text-slate-600">{request.description || 'No description provided.'}</p>
       </Card>
+
+      {['DRAFT', 'SUBMITTED', 'PROCESSING'].includes(request.status) && (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Risk analysis in progress...
+        </div>
+      )}
 
       {message && <AlertMessage type="error" message={message} />}
 
@@ -162,15 +211,7 @@ const CRDetails = () => {
             </dl>
           </Card>
 
-          {['ANALYZED', 'RISK_CONFIRMED', 'APPROVED', 'RUNNING', 'COMPLETED', 'FAILED']
-            .includes(request?.status) && (
-              <RiskAssessmentCard
-                assessment={assessmentData}
-                requestStatus={request?.status}
-                loading={loadingAssessment}
-                error={assessmentError}
-              />
-            )}
+
 
           <Card title="Change assets">
             <div className="space-y-4">

@@ -58,15 +58,20 @@ const ApprovalHistory = () => {
           ]}
           rows={history}
           emptyMessage="No approvals found."
-          renderRow={(item) => (
-            <tr key={item.id || item.flowId || item.changeRequestId || item.crId} className="hover:bg-slate-50">
-              <td className="px-6 py-4 text-slate-900">{item.crId || item.changeRequestId || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.status || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.steps?.[0]?.outcome || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.steps?.[0]?.approverEmail || '—'}</td>
-              <td className="px-6 py-4 text-slate-600">{item.steps?.[0]?.decisionAt ? new Date(item.steps[0].decisionAt).toLocaleString() : '—'}</td>
-            </tr>
-          )}
+          renderRow={(item) => {
+            const approver = item.approver || item.approvedBy || item.steps?.[0]?.approverEmail || item.steps?.[0]?.approver || '—'
+            const decision = item.decision || item.decision || item.steps?.[0]?.outcome || item.steps?.[0]?.decision || '—'
+            const decisionAt = item.updatedAt || item.updated || item.steps?.[0]?.decisionAt || item.steps?.[0]?.decision_at || null
+            return (
+              <tr key={item.id || item.flowId || item.changeRequestId || item.crId} className="hover:bg-slate-50">
+                <td className="px-6 py-4 text-slate-900">{item.crId || item.changeRequestId || '—'}</td>
+                <td className="px-6 py-4 text-slate-600">{item.status || '—'}</td>
+                <td className="px-6 py-4 text-slate-600">{decision}</td>
+                <td className="px-6 py-4 text-slate-600">{approver}</td>
+                <td className="px-6 py-4 text-slate-600">{decisionAt ? new Date(decisionAt).toLocaleString() : '—'}</td>
+              </tr>
+            )
+          }}
         />
       )}
     </div>

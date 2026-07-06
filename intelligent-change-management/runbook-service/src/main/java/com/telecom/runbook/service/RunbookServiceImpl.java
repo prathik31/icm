@@ -33,8 +33,10 @@ import com.telecom.runbook.repository.GeneratedRunbookRepository;
 import org.springframework.web.client.RestTemplate;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RunbookServiceImpl implements RunbookService {
 
@@ -79,47 +81,90 @@ public class RunbookServiceImpl implements RunbookService {
     public RunbookGenerationResponseDTO generateRunbook(String crId) {
         ChangeRequestDTO changeRequest = changeRequestClient.getChangeRequest(crId);
         CrAssessmentDTO assessment = changeRequestClient.getAssessment(crId);
+        // Build payload as a snake_case Map and filter out nulls to satisfy FastAPI/Pydantic
+        var payload = new java.util.LinkedHashMap<String, Object>();
 
-        RunbookGenerateRequestDTO request = new RunbookGenerateRequestDTO();
-        request.setCrId(changeRequest.getCrId());
-        request.setTitle(changeRequest.getTitle());
-        request.setDescription(changeRequest.getDescription());
-        request.setDomain(changeRequest.getDomain());
-        request.setChangeType(changeRequest.getChangeType());
-        request.setRegion(changeRequest.getRegion());
-        request.setScheduledStart(formatDateTime(changeRequest.getScheduledStart()));
-        request.setScheduledEnd(formatDateTime(changeRequest.getScheduledEnd()));
-        request.setRollbackAvailable(changeRequest.getRollbackAvailable());
-        request.setBusinessJustification(changeRequest.getBusinessJustification());
-        request.setAssetIds(
-            changeRequest.getAssets() == null
-                ? List.of()
-                : changeRequest.getAssets().stream()
-                    .map(CrAssetDTO::getAssetId)
-                    .toList());
-        request.setRiskAssessment(new RiskAssessmentDTO(
-            assessment.getRiskScore(),
-            assessment.getRiskLevel(),
-            assessment.getBlastRadius(),
-            assessment.getConfidence(),
-            assessment.getExecutiveSummary(),
-            assessment.getTechnicalAnalysis(),
-            assessment.getCabGuidance(),
-            assessment.getRecommendations(),
-            assessment.getRiskIndicators()));
+        payload.put("cr_id", changeRequest.getCrId());
+        putIfNonNull(payload, "title", changeRequest.getTitle());
+        putIfNonNull(payload, "description", changeRequest.getDescription());
+        putIfNonNull(payload, "domain", changeRequest.getDomain());
+        putIfNonNull(payload, "change_type", changeRequest.getChangeType());
+        putIfNonNull(payload, "region", changeRequest.getRegion());
+        putIfNonNull(payload, "scheduled_start", formatDateTime(changeRequest.getScheduledStart()));
+        putIfNonNull(payload, "scheduled_end", formatDateTime(changeRequest.getScheduledEnd()));
+        putIfNonNull(payload, "rollback_available", changeRequest.getRollbackAvailable());
+        putIfNonNull(payload, "business_justification", changeRequest.getBusinessJustification());
+
+        // assets -> asset_ids (list of strings)
+        java.util.List<String> assetIds = changeRequest.getAssets() == null
+                ? java.util.List.of()
+                : changeRequest.getAssets().stream().map(CrAssetDTO::getAssetId).toList();
+        payload.put("asset_ids", assetIds);
+
+        // risk_assessment nested object
+        if (assessment != null) {
+            var risk = new java.util.LinkedHashMap<String, Object>();
+            putIfNonNull(risk, "risk_score", assessment.getRiskScore());
+            putIfNonNull(risk, "risk_level", assessment.getRiskLevel());
+            putIfNonNull(risk, "blast_radius", assessment.getBlastRadius());
+            putIfNonNull(risk, "confidence", assessment.getConfidence());
+            putIfNonNull(risk, "executive_summary", assessment.getExecutiveSummary());
+            putIfNonNull(risk, "technical_analysis", assessment.getTechnicalAnalysis());
+            putIfNonNull(risk, "cab_guidance", assessment.getCabGuidance());
+            putIfNonNull(risk, "recommendations", assessment.getRecommendations());
+            putIfNonNull(risk, "risk_indicators", assessment.getRiskIndicators());
+            payload.put("risk_assessment", risk);
+        }
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<RunbookGenerateRequestDTO> entity = new HttpEntity<>(request, headers);
 
-        RunbookGenerateResponseDTO response = restTemplate.postForObject(
-                pythonAgentUrl + "/v1/runbooks/generate",
-                entity,
-                RunbookGenerateResponseDTO.class);
+        // Use a copy of the injected ObjectMapper but omit nulls during serialization
+        com.fasterxml.jackson.databind.ObjectMapper mapper = objectMapper.copy();
+        mapper.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
 
-        if (response == null) {
-            throw new RuntimeException("No runbook generation response returned from python agent");
+        RunbookGenerateResponseDTO response;
+        try {
+            String url = pythonAgentUrl + "/v1/runbooks/generate";
+            String payloadJson = mapper.writeValueAsString(payload);
+            System.out.println("========== RUNBOOK REQUEST ==========");
+            System.out.println(payloadJson);
+            System.out.println("=====================================");
+            log.info("Calling Python agent at {} with payload: {}", url, payloadJson);
+
+            HttpEntity<String> entity = new HttpEntity<>(payloadJson, headers);
+
+            org.springframework.http.ResponseEntity<String> resp = restTemplate.postForEntity(url, entity, String.class);
+
+            String respBody = resp.getBody();
+            log.info("Python agent response status: {} body: {}", resp.getStatusCode(), respBody);
+
+            System.out.println("=================================");
+            System.out.println("PYTHON RESPONSE BODY");
+            System.out.println(respBody);
+            System.out.println("=================================");
+
+            if (resp.getStatusCode().is2xxSuccessful() && respBody != null) {
+                response = mapper.readValue(respBody, RunbookGenerateResponseDTO.class);
+                System.out.println("========== PYTHON RESPONSE ==========");
+                System.out.println("RunbookId = " + response.getRunbookId());
+                System.out.println("CrId = " + response.getCrId());
+                System.out.println("Title = " + response.getTitle());
+                System.out.println("RiskLevel = " + response.getRiskLevel());
+                System.out.println("ExecutionSteps = " + response.getExecutionSteps());
+                System.out.println("=================================");
+            } else {
+                throw new RuntimeException("Runbook agent returned non-OK status: " + resp.getStatusCode());
+            }
+
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            String body = e.getResponseBodyAsString();
+            log.error("Python agent returned HTTP error {} with body: {}", e.getStatusCode(), body, e);
+            throw new RuntimeException("Python agent error: " + e.getStatusCode() + " body: " + body, e);
+        } catch (Exception e) {
+            log.error("Failed to call Python runbook agent", e);
+            throw new RuntimeException("Failed to call Python runbook agent", e);
         }
 
         GeneratedRunbook runbook = new GeneratedRunbook();
@@ -141,9 +186,19 @@ public class RunbookServiceImpl implements RunbookService {
         runbook.setGeneratedBy(response.getGeneratedBy());
         runbook.setCreatedAt(LocalDateTime.now());
 
-        generatedRunbookRepository.save(runbook);
+        System.out.println("========== BEFORE SAVE ==========");
+        System.out.println("CR ID = " + runbook.getCrId());
+        System.out.println("TITLE = " + runbook.getTitle());
+        System.out.println("RUNBOOK ID = " + runbook.getRunbookId());
+        System.out.println("=================================");
 
-        return new RunbookGenerationResponseDTO(runbook.getRunbookId(), runbook.getCrId(), "GENERATED");
+        GeneratedRunbook saved = generatedRunbookRepository.saveAndFlush(runbook);
+
+        System.out.println("========== SAVED ==========");
+        System.out.println(saved.getRunbookId());
+        System.out.println("=================================");
+
+        return new RunbookGenerationResponseDTO(saved.getRunbookId(), saved.getCrId(), "GENERATED");
     }
 
     private boolean isEligibleForRunbook(ChangeRequestDTO changeRequest) {
@@ -175,6 +230,16 @@ public class RunbookServiceImpl implements RunbookService {
         } catch (JsonProcessingException exception) {
             throw new RuntimeException("Failed to serialize runbook field", exception);
         }
+    }
+
+    private void putIfNonNull(java.util.Map<String, Object> map, String key, Object value) {
+        if (value == null) {
+            return;
+        }
+        if (value instanceof String s) {
+            if (s.isBlank()) return;
+        }
+        map.put(key, value);
     }
 
     private String formatDateTime(LocalDateTime dateTime) {

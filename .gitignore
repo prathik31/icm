@@ -66,3 +66,8 @@ desktop.ini
 
 # Nested backend repository metadata should not be added to the root repo
 intelligent-change-management/.git/
+
+# ChromaDB generated files
+python-agents-icm/runbook-agent/chroma_db/
+python-agents-icm/runbook-agent/chroma_db_backup_corrupted/
+*.sqlite3

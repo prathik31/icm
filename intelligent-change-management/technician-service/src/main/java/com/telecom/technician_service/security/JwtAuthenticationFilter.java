@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +23,7 @@ import java.util.List;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private final JwtProperties jwtProperties;
 
     public JwtAuthenticationFilter(JwtProperties jwtProperties) {
@@ -42,14 +45,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String userId = claims.get("userId", String.class);
                 String role = claims.get("role", String.class);
 
+                System.out.println("===== JWT DEBUG =====");
+                System.out.println("USER ID = " + userId);
+                System.out.println("ROLE = " + role);
+                System.out.println("URI = " + request.getRequestURI());
+                System.out.println("METHOD = " + request.getMethod());
+                System.out.println("=====================");
+
                 if (userId != null && role != null) {
                     String normalizedAuthority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
                     List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(normalizedAuthority));
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, token, authorities);
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.debug("Authenticated userId={} role={} grantedAuthorities={}", userId, role, authorities);
+                } else {
+                    logger.debug("JWT missing required userId or role claim. userId={}, role={}", userId, role);
                 }
             } catch (JwtException | IllegalArgumentException ex) {
+                logger.debug("Invalid JWT token: {}", ex.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }

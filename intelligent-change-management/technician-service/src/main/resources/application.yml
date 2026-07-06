@@ -28,6 +28,11 @@ jwt:
 
 external:
   change-request-service:
-    url: ${CHANGE_REQUEST_SERVICE_URL:http://localhost:9002}
+    url: ${CHANGE_REQUEST_SERVICE_URL:http://localhost:9004}
   runbook-service:
-    url: ${RUNBOOK_SERVICE_URL:http://localhost:9004}
+    url: ${RUNBOOK_SERVICE_URL:http://localhost:9096}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.telecom.technician_service.security: DEBUG

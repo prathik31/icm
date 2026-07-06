@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class PendingApprovalDTO {
 	private String flowId;
 	private String crId;
+	private String title;
+	private String region;
 	private String riskLevel;
 	private Double riskScore;
 	private String status;

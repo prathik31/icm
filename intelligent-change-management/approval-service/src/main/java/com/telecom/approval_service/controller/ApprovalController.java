@@ -2,11 +2,10 @@ package com.telecom.approval_service.controller;
 
 import java.util.List;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,9 +22,9 @@ import com.telecom.approval_service.dto.PendingApprovalDTO;
 import com.telecom.approval_service.dto.TestApprovalRequestDTO;
 import com.telecom.approval_service.kafka.event.CrRiskConfirmedEvent;
 import com.telecom.approval_service.service.ApprovalWorkflowService;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.beans.factory.annotation.Value;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -99,13 +98,10 @@ public class ApprovalController {
 	public ResponseEntity<ApprovalDetailsDTO> approve(@PathVariable String flowId,
 			@Valid @RequestBody ApprovalDecisionRequestDTO requestBody, HttpServletRequest request) {
 
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		log.info("Authenticated user: {}", auth != null ? auth.getName() : "<none>");
-		log.info("Authorities: {}", auth != null ? auth.getAuthorities() : "<none>");
-
 		String userId = validateApproverOrAdmin(request);
 		String role = getRole(request);
-		ApprovalDetailsDTO response = approvalWorkflowService.approve(flowId, userId, role, requestBody.getComment());
+		String approverEmail = getApproverEmail(request);
+		ApprovalDetailsDTO response = approvalWorkflowService.approve(flowId, userId, role, approverEmail, requestBody.getComment());
 		return ResponseEntity.ok(response);
 	}
 
@@ -115,7 +111,8 @@ public class ApprovalController {
 
 		String userId = validateApproverOrAdmin(request);
 		String role = getRole(request);
-		ApprovalDetailsDTO response = approvalWorkflowService.reject(flowId, userId, role, requestBody.getComment());
+		String approverEmail = getApproverEmail(request);
+		ApprovalDetailsDTO response = approvalWorkflowService.reject(flowId, userId, role, approverEmail, requestBody.getComment());
 		return ResponseEntity.ok(response);
 	}
 
@@ -134,6 +131,15 @@ public class ApprovalController {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 		}
 		return userId;
+	}
+
+	private String getApproverEmail(HttpServletRequest request) {
+		Object email = request.getAttribute("email");
+		if (email != null) {
+			return email.toString();
+		}
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		return authentication != null ? authentication.getName() : null;
 	}
 
 	private void validateRole(HttpServletRequest request, String requiredRole) {

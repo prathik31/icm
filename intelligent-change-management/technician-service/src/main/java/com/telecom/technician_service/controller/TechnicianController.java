@@ -1,21 +1,30 @@
 package com.telecom.technician_service.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.telecom.technician_service.dto.AssignTechnicianRequest;
 import com.telecom.technician_service.dto.CompleteExecutionRequest;
 import com.telecom.technician_service.dto.DashboardResponse;
+import com.telecom.technician_service.dto.ExecutionHistoryResponse;
 import com.telecom.technician_service.dto.ScheduleRequest;
 import com.telecom.technician_service.dto.TaskDetailsResponse;
+import com.telecom.technician_service.dto.TechnicianDto;
 import com.telecom.technician_service.dto.TechnicianTaskDto;
 import com.telecom.technician_service.entity.ExecutionLog;
 import com.telecom.technician_service.entity.TechnicianAssignment;
 import com.telecom.technician_service.security.AuthUtil;
 import com.telecom.technician_service.service.TechnicianTaskService;
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/v1/technicians")
@@ -25,6 +34,12 @@ public class TechnicianController {
 
     public TechnicianController(TechnicianTaskService taskService) {
         this.taskService = taskService;
+    }
+
+    @GetMapping("/list")
+    @PreAuthorize("hasRole('APPROVER')")
+    public ResponseEntity<List<TechnicianDto>> getAvailableTechnicians() {
+        return ResponseEntity.ok(taskService.listAvailableTechnicians());
     }
 
     @PostMapping("/assign/{crId}")
@@ -41,6 +56,13 @@ public class TechnicianController {
     public ResponseEntity<List<TechnicianTaskDto>> getMyTasks() {
         String technicianId = AuthUtil.getCurrentUserId();
         return ResponseEntity.ok(taskService.listMyTasks(technicianId));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('TECHNICIAN') or hasRole('ADMIN')")
+    public ResponseEntity<TechnicianDto> getProfile() {
+        String technicianId = AuthUtil.getCurrentUserId();
+        return ResponseEntity.ok(taskService.getTechnicianProfile(technicianId));
     }
 
     @GetMapping("/task/{crId}")
@@ -73,13 +95,15 @@ public class TechnicianController {
 
     @GetMapping("/execution-history")
     @PreAuthorize("hasRole('TECHNICIAN')")
-    public ResponseEntity<List<ExecutionLog>> getExecutionHistory() {
+    public ResponseEntity<List<ExecutionHistoryResponse>> getExecutionHistory() {
         String technicianId = AuthUtil.getCurrentUserId();
         return ResponseEntity.ok(taskService.findExecutionHistory(technicianId));
     }
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('TECHNICIAN') or hasRole('ADMIN')")
     public ResponseEntity<DashboardResponse> getDashboard() {
-        return ResponseEntity.ok(taskService.getDashboard());
+        String technicianId = AuthUtil.getCurrentUserId();
+        return ResponseEntity.ok(taskService.getDashboard(technicianId));
     }
 }

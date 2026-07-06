@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.telecom.approval_service.dto.ApprovalDetailsDTO;
 import com.telecom.approval_service.dto.ApprovalStepDTO;
+import com.telecom.approval_service.dto.ChangeRequestInfoDTO;
 import com.telecom.approval_service.dto.PendingApprovalDTO;
 import com.telecom.approval_service.entity.ApprovalDecision;
 import com.telecom.approval_service.entity.ApprovalFlow;
@@ -52,7 +53,8 @@ public class ApprovalWorkflowService {
 	}
 
 	public List<PendingApprovalDTO> getPendingApprovals() {
-		return approvalFlowRepository.findByStatusIn(List.of("PENDING", "IN_PROGRESS")).stream().map(this::mapToPending)
+		return approvalFlowRepository.findByStatusIn(List.of("PENDING", "IN_PROGRESS")).stream()
+				.map(this::mapToPending)
 				.collect(Collectors.toList());
 	}
 
@@ -80,7 +82,7 @@ public class ApprovalWorkflowService {
 	}
 
 	@Transactional
-	public ApprovalDetailsDTO approve(String flowId, String approverUserId, String approverRole, String comment) {
+	public ApprovalDetailsDTO approve(String flowId, String approverUserId, String approverRole, String approverEmail, String comment) {
 		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
 				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found: " + flowId));
 
@@ -93,7 +95,7 @@ public class ApprovalWorkflowService {
 		approvalFlowRepository.save(flow);
 
 		ApprovalDecision decision = ApprovalDecision.builder().flowId(flowId).approverUserId(approverUserId)
-				.approverRole(approverRole).approverEmail("swetasingh@gmail.com").outcome("APPROVED").comment(comment).decisionAt(LocalDateTime.now())
+				.approverRole(approverRole).approverEmail(approverEmail != null ? approverEmail : approverUserId).outcome("APPROVED").comment(comment).decisionAt(LocalDateTime.now())
 				.build();
 		approvalDecisionRepository.save(decision);
 
@@ -108,7 +110,7 @@ public class ApprovalWorkflowService {
 	}
 
 	@Transactional
-	public ApprovalDetailsDTO reject(String flowId, String approverUserId, String approverRole, String comment) {
+	public ApprovalDetailsDTO reject(String flowId, String approverUserId, String approverRole, String approverEmail, String comment) {
 		ApprovalFlow flow = approvalFlowRepository.findByFlowId(flowId)
 				.orElseThrow(() -> new ResourceNotFoundException("Approval flow not found: " + flowId));
 
@@ -121,7 +123,7 @@ public class ApprovalWorkflowService {
 		approvalFlowRepository.save(flow);
 
 		ApprovalDecision decision = ApprovalDecision.builder().flowId(flowId).approverUserId(approverUserId)
-				.approverRole(approverRole).approverEmail("swetasingh@gmail.com").outcome("REJECTED").comment(comment).decisionAt(LocalDateTime.now())
+				.approverRole(approverRole).approverEmail(approverEmail != null ? approverEmail : approverUserId).outcome("REJECTED").comment(comment).decisionAt(LocalDateTime.now())
 				.build();
 		approvalDecisionRepository.save(decision);
 
@@ -168,9 +170,24 @@ public class ApprovalWorkflowService {
 		PendingApprovalDTO pending = new PendingApprovalDTO();
 		pending.setFlowId(flow.getFlowId());
 		pending.setCrId(flow.getCrId());
+		ChangeRequestInfoDTO crInfo = fetchChangeRequestInfo(flow.getCrId());
+		if (crInfo != null) {
+			pending.setTitle(crInfo.getTitle());
+			pending.setRegion(crInfo.getRegion());
+		}
 		pending.setRiskLevel(flow.getRiskLevel());
 		pending.setRiskScore(flow.getRiskScore());
 		pending.setStatus(flow.getStatus());
 		return pending;
+	}
+
+	private ChangeRequestInfoDTO fetchChangeRequestInfo(String crId) {
+		try {
+			String url = changeRequestServiceUrl + "/v1/change-requests/" + crId;
+			return restTemplate.getForObject(url, ChangeRequestInfoDTO.class);
+		} catch (Exception ex) {
+			log.warn("Unable to fetch change request metadata for CR {}: {}", crId, ex.getMessage());
+			return null;
+		}
 	}
 }

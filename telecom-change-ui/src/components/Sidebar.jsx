@@ -1,16 +1,18 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FilePlus, ClipboardList, Clock, ListChecks, BookOpen } from 'lucide-react'
+import { Home, FilePlus, ClipboardList, Clock, ListChecks, BookOpen, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useDataContext } from '../context/DataContext'
 
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: Home },
   { label: 'Create CR', path: '/cr/create', icon: FilePlus, roles: ['ENGINEER', 'ADMIN'] },
-  { label: 'My CRs', path: '/cr/list', icon: ClipboardList },
-  { label: 'Risk Assessments', path: '/risk-assessments', icon: Clock },
-  { label: 'AI Runbooks', path: '/runbooks', icon: BookOpen, roles: ['ENGINEER'] },
+  { label: 'My CRs', path: '/cr/list', icon: ClipboardList, roles: ['ENGINEER', 'APPROVER', 'ADMIN'] },
   { label: 'Pending Approvals', path: '/approvals/pending', icon: Clock, roles: ['APPROVER', 'ADMIN'] },
   { label: 'Approval History', path: '/approvals/history', icon: ListChecks, roles: ['APPROVER', 'ADMIN'] },
+  { label: 'Runbooks', path: '/runbooks', icon: BookOpen, roles: ['APPROVER', 'ADMIN'] },
+  { label: 'My Tasks', path: '/technician/tasks', icon: ClipboardList, roles: ['TECHNICIAN', 'ADMIN'] },
+  { label: 'Profile', path: '/technician/profile', icon: User, roles: ['TECHNICIAN', 'ADMIN'] },
+  { label: 'Execution History', path: '/technician/history', icon: ListChecks, roles: ['TECHNICIAN', 'ADMIN'] },
 ]
 
 const Sidebar = () => {
@@ -64,7 +66,7 @@ const Sidebar = () => {
       <div className="mt-auto px-3">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
           <div className="font-semibold text-slate-900">Workflow support</div>
-          <p className="mt-2 text-xs">Track the request lifecycle from draft through risk confirmation and approvals.</p>
+          <p className="mt-2 text-xs">Track the request lifecycle from draft through analysis and approvals.</p>
         </div>
       </div>
     </aside>

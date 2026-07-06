@@ -276,7 +276,7 @@ python -m risk-assessment.agent.main
 
 Terminal 2 — Start Kafka consumer:
 ```powershell
-python -m risk-assessment.messaging.consumer
+python -m messaging.consumer
 ```
 
 This service:

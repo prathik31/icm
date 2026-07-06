@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { createChangeRequest } from '../services/crService'
 import AlertMessage from '../components/AlertMessage'
@@ -56,23 +57,44 @@ const CRCreate = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    let toastId = null
     setMessage(null)
     setLoading(true)
     try {
+      toastId = toast.loading('Creating change request...')
       const payload = {
         ...form,
         requestedByUserId: userId,
       }
       const response = await createChangeRequest(payload)
       void response
-      alert('Change Request Draft Created Successfully!')
+      toast.custom(
+        (t) => (
+          <div className="pointer-events-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-4 shadow-lg text-slate-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">Change request created</p>
+                <p className="mt-1 text-sm text-slate-600">Draft saved successfully and ready for review.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="rounded-full px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ),
+        { id: toastId, duration: 4500 },
+      )
       navigate('/cr/list')
-      window.location.reload()
     } catch (err) {
       // Axios returns either a string or an object from axiosClient interceptor
       console.error('Create CR error', err)
       const friendly =
         err?.message || err?.error || (typeof err === 'string' ? err : null) || JSON.stringify(err)
+      toast.error(friendly || 'Failed to create change request.', { id: toastId })
       setMessage(friendly || 'Failed to create change request.')
     } finally {
       setLoading(false)

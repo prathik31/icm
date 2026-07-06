@@ -6,11 +6,15 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class ExternalServiceClient {
 
@@ -48,8 +52,12 @@ public class ExternalServiceClient {
                     }
             );
             return response.getBody() != null ? response.getBody() : Collections.emptyMap();
+        } catch (RestClientResponseException ex) {
+            log.error("External service request failed: url={}, status={}, responseBody={}", url, ex.getRawStatusCode(), ex.getResponseBodyAsString(), ex);
+            return null;
         } catch (RestClientException ex) {
-            return Collections.emptyMap();
+            log.error("External service request failed: url={}, error={}", url, ex.getMessage(), ex);
+            return null;
         }
     }
 }

@@ -1,9 +1,10 @@
 package com.telecom.technician_service.dto;
 
-import lombok.Builder;
-import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Map;
+
+import lombok.Builder;
+import lombok.Data;
 
 @Data
 @Builder
@@ -14,6 +15,7 @@ public class TaskDetailsResponse {
     private Map<String, Object> runbook;
     private String assignmentStatus;
     private String technicianId;
+    private TechnicianDto assignedTechnician;
     private String assignedBy;
     private LocalDateTime assignedAt;
     private LocalDateTime scheduledStart;

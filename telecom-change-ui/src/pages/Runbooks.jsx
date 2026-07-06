@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { fetchEligibleCRs, generateRunbook } from '../api/runbookApi'
 import { sortByLatest } from '../utils/sortByLatest'
 
@@ -26,13 +27,16 @@ const Runbooks = () => {
   }
 
   const handleGenerate = async (crId) => {
+    const toastId = toast.loading('Generating runbook...')
     try {
       setGeneratingCrId(crId)
       await generateRunbook(crId)
+      toast.success('Runbook generated successfully.', { id: toastId })
       navigate(`/runbooks/${crId}`)
     } catch (err) {
       console.error(err)
-      alert('Runbook generation failed')
+      toast.error('Runbook generation failed.', { id: toastId })
+      setError(err?.message || 'Runbook generation failed.')
     } finally {
       setGeneratingCrId(null)
     }
